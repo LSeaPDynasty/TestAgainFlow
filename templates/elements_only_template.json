@@ -1,0 +1,50 @@
+{
+  "version": "1.0",
+  "description": "元素快速导入模板 - 将元素导入到指定界面",
+  "target_screen": "登录页面",
+  "elements": [
+    {
+      "name": "用户名输入框",
+      "description": "输入用户名的输入框",
+      "locators": [
+        {
+          "type": "resource-id",
+          "value": "com.example.app:id/username",
+          "priority": 1
+        },
+        {
+          "type": "xpath",
+          "value": "//*[@text='请输入用户名']",
+          "priority": 2
+        }
+      ]
+    },
+    {
+      "name": "密码输入框",
+      "description": "输入密码的输入框",
+      "locators": [
+        {
+          "type": "resource-id",
+          "value": "com.example.app:id/password",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "name": "登录按钮",
+      "description": "点击登录的按钮",
+      "locators": [
+        {
+          "type": "text",
+          "value": "登录",
+          "priority": 1
+        },
+        {
+          "type": "resource-id",
+          "value": "com.example.app:id/login_btn",
+          "priority": 2
+        }
+      ]
+    }
+  ]
+}

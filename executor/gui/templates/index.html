@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TestFlow 执行引擎</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="logo">
+                <h1>🤖 TestFlow 执行引擎</h1>
+                <span class="version">v1.0.0</span>
+            </div>
+            <div class="status-controls">
+                <button id="startBtn" class="btn btn-success">▶️ 启动引擎</button>
+                <button id="stopBtn" class="btn btn-danger">⏹️ 停止引擎</button>
+            </div>
+        </header>
+
+        <!-- 状态卡片 -->
+        <div class="status-cards">
+            <div class="card">
+                <div class="card-icon">📊</div>
+                <div class="card-content">
+                    <div class="card-label">引擎状态</div>
+                    <div class="card-value" id="engineStatus">检查中...</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-icon">⚡</div>
+                <div class="card-content">
+                    <div class="card-label">活动任务</div>
+                    <div class="card-value" id="activeTasks">0</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-icon">📋</div>
+                <div class="card-content">
+                    <div class="card-label">队列大小</div>
+                    <div class="card-value" id="queueSize">0</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-icon">📱</div>
+                <div class="card-content">
+                    <div class="card-label">连接设备</div>
+                    <div class="card-value" id="deviceCount">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主要内容区域 -->
+        <div class="main-content">
+            <!-- 任务列表 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>📝 活动任务</h2>
+                    <button id="refreshTasks" class="btn btn-small">🔄 刷新</button>
+                </div>
+                <div class="panel-body">
+                    <div id="tasksList" class="tasks-list">
+                        <div class="empty-state">暂无活动任务</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 设备列表 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>📱 连接的设备</h2>
+                    <button id="refreshDevices" class="btn btn-small">🔄 刷新</button>
+                </div>
+                <div class="panel-body">
+                    <div id="devicesList" class="devices-list">
+                        <div class="empty-state">暂无连接设备</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 日志面板 -->
+        <div class="panel log-panel">
+            <div class="panel-header">
+                <h2>📋 系统日志</h2>
+                <div class="log-controls">
+                    <button id="clearLogs" class="btn btn-small">🗑️ 清空</button>
+                    <button id="refreshLogs" class="btn btn-small">🔄 刷新</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div id="logsContainer" class="logs-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+{
+  "project_id": 1,
+  "name": "登录成功用例",
+  "description": "通过外部 JSON 导入的测试用例",
+  "priority": "P1",
+  "timeout": 120,
+  "params": {
+    "username": "test_user",
+    "password": "123456"
+  },
+  "setup_flows": [
+    {
+      "name": "启动应用",
+      "description": "进入目标页面前置流程",
+      "steps": [
+        {
+          "name": "等待应用启动",
+          "action_type": "wait_time",
+          "screen": {
+            "name": "首页",
+            "activity": "com.demo.app.MainActivity",
+            "description": "应用首页"
+          },
+          "action_value": "1000",
+          "wait_after_ms": 0,
+          "continue_on_error": false
+        }
+      ]
+    }
+  ],
+  "main_flows": [
+    {
+      "name": "登录主流程",
+      "description": "输入账号密码并点击登录",
+      "steps": [
+        {
+          "name": "输入用户名",
+          "action_type": "input",
+          "screen": "登录页",
+          "element": {
+            "name": "username_input",
+            "description": "用户名输入框",
+            "locators": [
+              {
+                "type": "resource-id",
+                "value": "com.demo.app:id/username",
+                "priority": 1
+              },
+              {
+                "type": "xpath",
+                "value": "//*[@resource-id='com.demo.app:id/username']",
+                "priority": 2
+              }
+            ]
+          },
+          "action_value": "{{username}}",
+          "wait_after_ms": 300
+        },
+        {
+          "name": "输入密码",
+          "action_type": "input",
+          "screen": "登录页",
+          "element": {
+            "name": "password_input",
+            "description": "密码输入框",
+            "locators": [
+              {
+                "type": "resource-id",
+                "value": "com.demo.app:id/password",
+                "priority": 1
+              }
+            ]
+          },
+          "action_value": "{{password}}",
+          "wait_after_ms": 300
+        },
+        {
+          "name": "点击登录",
+          "action_type": "click",
+          "screen": "登录页",
+          "element": {
+            "name": "login_button",
+            "description": "登录按钮",
+            "locators": [
+              {
+                "type": "resource-id",
+                "value": "com.demo.app:id/login_btn",
+                "priority": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "校验登录成功",
+          "action_type": "assert_exists",
+          "screen": "首页",
+          "element": {
+            "name": "home_tab",
+            "description": "首页主入口",
+            "locators": [
+              {
+                "type": "text",
+                "value": "首页",
+                "priority": 1
+              }
+            ]
+          },
+          "assert_config": {
+            "type": "exists",
+            "expected": "true",
+            "on_fail": "stop"
+          }
+        }
+      ]
+    }
+  ],
+  "teardown_flows": [
+    {
+      "name": "清理流程",
+      "description": "示例收尾流程",
+      "steps": [
+        {
+          "name": "返回上一页",
+          "action_type": "hardware_back",
+          "screen": "首页"
+        }
+      ]
+    }
+  ]
+}

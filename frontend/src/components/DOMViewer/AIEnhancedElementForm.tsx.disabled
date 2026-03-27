@@ -1,0 +1,527 @@
+/**
+ * AI-Enhanced Element Form
+ * Integrates AI element suggestions into the element creation workflow
+ * NOTE: Currently disabled due to @mui/material dependency issues
+ */
+
+import React, { useState, useEffect } from 'react';
+// TODO: Re-enable after migrating to Ant Design or installing @mui/material
+/*
+import {
+  Modal,
+  Box,
+  Typography,
+  TextField,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Chip,
+  Stack,
+  Alert,
+  CircularProgress,
+  Divider,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemButton,
+  IconButton,
+  Tooltip
+} from '@mui/material';
+import {
+  AutoAwesome as AutoAwesomeIcon,
+  Add as AddIcon,
+  Check as CheckIcon,
+  Close as CloseIcon
+} from '@mui/icons-material';
+*/
+import type { ElementSuggestResponse } from '../../services/ai';
+import type { ElementMatch } from '../../services/ai';
+
+interface Locator {
+  type: string;
+  value: string;
+  priority: number;
+}
+
+interface AIEnhancedElementFormProps {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (data: any) => Promise<void>;
+  domElement?: any;
+  screenId?: number;
+  projectId?: number;
+}
+
+const LOCATOR_TYPES = [
+  'resource-id',
+  'text',
+  'content-desc',
+  'xpath',
+  'class',
+  'accessibility-id'
+];
+
+export const AIEnhancedElementForm: React.FC<AIEnhancedElementFormProps> = ({
+  open,
+  onClose,
+  onSubmit,
+  domElement,
+  screenId,
+  projectId
+}) => {
+  const [loading, setLoading] = useState(false);
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+  const [suggestions, setSuggestions] = useState<ElementSuggestResponse | null>(null);
+  const [selectedMatch, setSelectedMatch] = useState<ElementMatch | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Form state
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [locators, setLocators] = useState<Locator[]>([]);
+
+  // New locator form
+  const [newLocatorType, setNewLocatorType] = useState('resource-id');
+  const [newLocatorValue, setNewLocatorValue] = useState('');
+  const [newLocatorPriority, setNewLocatorPriority] = useState(1);
+
+  // Initialize form from DOM element
+  useEffect(() => {
+    if (domElement && open) {
+      // Pre-fill from DOM element
+      const suggestedName = generateSuggestedName(domElement);
+      setName(suggestedName);
+
+      // Pre-fill locators from DOM element
+      const initialLocators: Locator[] = [];
+      let priority = 1;
+
+      if (domElement['resource-id'] && domElement['resource-id'] !== '') {
+        initialLocators.push({
+          type: 'resource-id',
+          value: domElement['resource-id'],
+          priority: priority++
+        });
+      }
+      if (domElement.text && domElement.text !== '') {
+        initialLocators.push({
+          type: 'text',
+          value: domElement.text,
+          priority: priority++
+        });
+      }
+      if (domElement['content-desc'] && domElement['content-desc'] !== '') {
+        initialLocators.push({
+          type: 'content-desc',
+          value: domElement['content-desc'],
+          priority: priority++
+        });
+      }
+      if (domElement.xpath) {
+        initialLocators.push({
+          type: 'xpath',
+          value: domElement.xpath,
+          priority: priority++
+        });
+      }
+
+      setLocators(initialLocators);
+
+      // Trigger AI suggestion
+      fetchAISuggestions();
+    }
+  }, [domElement, open]);
+
+  const fetchAISuggestions = async () => {
+    if (!domElement) return;
+
+    setAiAnalyzing(true);
+    setError(null);
+
+    try {
+      const response = await aiService.suggestElements({
+        dom_element: domElement,
+        screen_id: screenId,
+        project_id: projectId,
+        threshold: 0.6
+      });
+
+      setSuggestions(response);
+
+      // Auto-select best match if high confidence
+      if (response.best_match && response.best_match.similarity_score > 0.85) {
+        handleSelectMatch(response.best_match);
+      }
+    } catch (err: any) {
+      console.error('AI suggestion failed:', err);
+      setError(err.response?.data?.message || 'Failed to get AI suggestions');
+    } finally {
+      setAiAnalyzing(false);
+    }
+  };
+
+  const handleSelectMatch = (match: ElementMatch) => {
+    setSelectedMatch(match);
+    setName(match.element_name);
+    setLocators(match.locators);
+  };
+
+  const handleUseSuggestion = () => {
+    if (suggestions?.ai_recommendation?.suggested_name) {
+      setName(suggestions.ai_recommendation.suggested_name);
+    }
+    if (suggestions?.ai_recommendation?.suggested_locators) {
+      setLocators(suggestions.ai_recommendation.suggested_locators);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!name.trim()) {
+      setError('Element name is required');
+      return;
+    }
+
+    if (locators.length === 0) {
+      setError('At least one locator is required');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      await onSubmit({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        screen_id: screenId,
+        project_id: projectId,
+        locators: locators
+      });
+      handleClose();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to create element');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setName('');
+    setDescription('');
+    setLocators([]);
+    setSelectedMatch(null);
+    setSuggestions(null);
+    setError(null);
+    onClose();
+  };
+
+  const addLocator = () => {
+    if (!newLocatorValue.trim()) return;
+
+    setLocators([...locators, {
+      type: newLocatorType,
+      value: newLocatorValue.trim(),
+      priority: newLocatorPriority
+    }]);
+
+    setNewLocatorValue('');
+    setNewLocatorPriority(Math.max(newLocatorPriority + 1, 1));
+  };
+
+  const removeLocator = (index: number) => {
+    setLocators(locators.filter((_, i) => i !== index));
+  };
+
+  const generateSuggestedName = (element: any): string => {
+    const text = element.text || '';
+    const className = element.class || '';
+
+    let name = '';
+
+    if (text) {
+      name = text.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+    }
+
+    if (className) {
+      const type = className.split('.').pop()?.replace('View', '').replace('Layout', '') || 'element';
+      name = name ? `${name}_${type}` : type;
+    }
+
+    return name || 'ui_element';
+  };
+
+  const getMatchTypeColor = (type: string) => {
+    switch (type) {
+      case 'strict':
+        return 'success';
+      case 'fuzzy':
+        return 'warning';
+      case 'semantic':
+        return 'info';
+      default:
+        return 'default';
+    }
+  };
+
+  const getMatchTypeLabel = (type: string) => {
+    switch (type) {
+      case 'strict':
+        return 'Exact Match';
+      case 'fuzzy':
+        return 'Similar';
+      case 'semantic':
+        return 'Related';
+      default:
+        return type;
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={handleClose} maxWidth="md" fullWidth>
+      <Box
+        sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '90%',
+          maxWidth: 700,
+          maxHeight: '90vh',
+          bgcolor: 'background.paper',
+          borderRadius: 2,
+          boxShadow: 24,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        {/* Header */}
+        <Box sx={{ p: 2, bgcolor: 'primary.main', color: 'white' }}>
+          <Stack direction="row" alignItems="center" spacing={2}>
+            <AutoAwesomeIcon />
+            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+              AI-Enhanced Element Creation
+            </Typography>
+            <IconButton onClick={handleClose} sx={{ color: 'white' }}>
+              <CloseIcon />
+            </IconButton>
+          </Stack>
+        </Box>
+
+        <Box sx={{ p: 3, overflowY: 'auto', flex: 1 }}>
+          {/* AI Suggestions Panel */}
+          {aiAnalyzing && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <Stack direction="row" alignItems="center" spacing={2}>
+                <CircularProgress size={20} />
+                <span>AI is analyzing similar elements...</span>
+              </Stack>
+            </Alert>
+          )}
+
+          {suggestions && suggestions.matches.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
+                Found Similar Elements ({suggestions.matches.length})
+              </Typography>
+              <List dense sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                {suggestions.matches.map((match, index) => (
+                  <ListItem
+                    key={match.element_id}
+                    disablePadding
+                    secondaryAction={
+                      selectedMatch?.element_id === match.element_id ? (
+                        <CheckIcon color="success" />
+                      ) : (
+                        <Button
+                          size="small"
+                          onClick={() => handleSelectMatch(match)}
+                          disabled={selectedMatch?.element_id === match.element_id}
+                        >
+                          Use
+                        </Button>
+                      )
+                    }
+                  >
+                    <ListItemButton
+                      onClick={() => handleSelectMatch(match)}
+                      selected={selectedMatch?.element_id === match.element_id}
+                    >
+                      <ListItemText
+                        primary={
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            <span>{match.element_name}</span>
+                            <Chip
+                              label={getMatchTypeLabel(match.match_type)}
+                              color={getMatchTypeColor(match.match_type) as any}
+                              size="small"
+                            />
+                            <Chip
+                              label={`${Math.round(match.similarity_score * 100)}%`}
+                              size="small"
+                              variant="outlined"
+                            />
+                          </Stack>
+                        }
+                        secondary={match.reason}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+          )}
+
+          {suggestions && suggestions.matches.length === 0 && suggestions.ai_recommendation && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <span>No similar elements found. AI suggests creating a new element.</span>
+                <Button size="small" onClick={handleUseSuggestion}>
+                  Use Suggestion
+                </Button>
+              </Stack>
+            </Alert>
+          )}
+
+          <Divider sx={{ my: 2 }} />
+
+          {/* Element Form */}
+          <form onSubmit={handleSubmit}>
+            <Stack spacing={3}>
+              {/* Name */}
+              <TextField
+                label="Element Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                fullWidth
+                required
+                placeholder="e.g., login_button"
+                error={!name.trim()}
+                helperText={!name.trim() ? 'Element name is required' : 'Use snake_case naming'}
+              />
+
+              {/* Description */}
+              <TextField
+                label="Description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                fullWidth
+                multiline
+                rows={2}
+                placeholder="Optional description of this element"
+              />
+
+              {/* Locators */}
+              <Box>
+                <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
+                  Locators
+                </Typography>
+
+                {locators.length > 0 && (
+                  <Stack spacing={1} sx={{ mb: 2 }}>
+                    {locators.map((locator, index) => (
+                      <Stack
+                        key={index}
+                        direction="row"
+                        alignItems="center"
+                        spacing={1}
+                        sx={{
+                          p: 1,
+                          bgcolor: 'action.hover',
+                          borderRadius: 1
+                        }}
+                      >
+                        <Chip label={locator.type} size="small" />
+                        <Typography variant="body2" sx={{ flexGrow: 1, fontFamily: 'monospace' }}>
+                          {locator.value}
+                        </Typography>
+                        <Chip label={`P${locator.priority}`} size="small" variant="outlined" />
+                        <Tooltip title="Remove locator">
+                          <IconButton
+                            size="small"
+                            onClick={() => removeLocator(index)}
+                            color="error"
+                          >
+                            <CloseIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    ))}
+                  </Stack>
+                )}
+
+                {/* Add new locator */}
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <FormControl size="small" sx={{ minWidth: 150 }}>
+                    <InputLabel>Type</InputLabel>
+                    <Select
+                      value={newLocatorType}
+                      onChange={(e) => setNewLocatorType(e.target.value)}
+                      label="Type"
+                    >
+                      {LOCATOR_TYPES.map(type => (
+                        <MenuItem key={type} value={type}>{type}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <TextField
+                    size="small"
+                    placeholder="Locator value"
+                    value={newLocatorValue}
+                    onChange={(e) => setNewLocatorValue(e.target.value)}
+                    sx={{ flexGrow: 1 }}
+                  />
+
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="Priority"
+                    value={newLocatorPriority}
+                    onChange={(e) => setNewLocatorPriority(parseInt(e.target.value) || 1)}
+                    sx={{ width: 100 }}
+                  />
+
+                  <Button
+                    variant="outlined"
+                    startIcon={<AddIcon />}
+                    onClick={addLocator}
+                    disabled={!newLocatorValue.trim()}
+                  >
+                    Add
+                  </Button>
+                </Stack>
+              </Box>
+
+              {/* Error */}
+              {error && (
+                <Alert severity="error">{error}</Alert>
+              )}
+
+              {/* Actions */}
+              <Stack direction="row" spacing={2} justifyContent="flex-end">
+                <Button onClick={handleClose} disabled={loading}>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={loading || !name.trim() || locators.length === 0}
+                  startIcon={loading ? <CircularProgress size={20} /> : <CheckIcon />}
+                >
+                  {selectedMatch ? 'Reuse Element' : 'Create Element'}
+                </Button>
+              </Stack>
+            </Stack>
+          </form>
+        </Box>
+      </Box>
+    </Modal>
+  );
+};
+
+export default AIEnhancedElementForm;

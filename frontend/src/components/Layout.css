@@ -1,0 +1,315 @@
+/* ===================================
+   Fixed Layout Styles
+   固定导航栏 + 独立滚动内容
+   =================================== */
+
+.layout-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f0f2f5;
+}
+
+/* ===================================
+   Header - 固定在顶部
+   =================================== */
+
+.layout-header {
+  position: relative;
+  z-index: 1000;
+  flex-shrink: 0;
+  height: 56px;
+  background: #001529;
+  border-bottom: 1px solid #002140;
+}
+
+/* ===================================
+   Body - 主体区域
+   =================================== */
+
+.layout-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ===================================
+   Sidebar - 固定在左侧
+   =================================== */
+
+.layout-sidebar {
+  position: relative;
+  z-index: 900;
+  flex-shrink: 0;
+  width: 200px;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #001529;
+  transition: width 0.3s ease;
+}
+
+.layout-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.layout-sidebar::-webkit-scrollbar-track {
+  background: #001529;
+}
+
+.layout-sidebar::-webkit-scrollbar-thumb {
+  background: #003a70;
+  border-radius: 3px;
+}
+
+.layout-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #0050a0;
+}
+
+/* Sidebar 折叠状态 */
+.layout-sidebar.collapsed {
+  width: 60px;
+}
+
+/* ===================================
+   Content - 独立滚动的内容区域
+   =================================== */
+
+.layout-content {
+  flex: 1;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px;
+  position: relative;
+  scroll-behavior: smooth;
+  transition: all 0.3s ease;
+}
+
+/* 美化滚动条 */
+.layout-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.layout-content::-webkit-scrollbar-track {
+  background: #f0f2f5;
+  border-radius: 4px;
+}
+
+.layout-content::-webkit-scrollbar-thumb {
+  background: #bfbfbf;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.layout-content::-webkit-scrollbar-thumb:hover {
+  background: #8c8c8c;
+}
+
+/* 有日志面板时的样式 */
+.layout-content.with-log-panel {
+  padding-bottom: 320px;
+}
+
+/* ===================================
+   Responsive Design
+   =================================== */
+
+/* 平板设备 */
+@media (max-width: 1024px) {
+  .layout-sidebar {
+    width: 60px;
+  }
+}
+
+/* 移动设备 */
+@media (max-width: 768px) {
+  .layout-sidebar {
+    position: fixed;
+    left: -200px;
+    z-index: 1000;
+    transition: left 0.3s ease;
+  }
+
+  .layout-sidebar.mobile-open {
+    left: 0;
+  }
+
+  .layout-content {
+    padding: 16px;
+  }
+}
+
+/* ===================================
+   Sidebar 组件内部样式
+   =================================== */
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  border-bottom: 1px solid #002140;
+  padding: 0 16px;
+}
+
+.sidebar-logo {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sidebar-menu {
+  background: #001529;
+  border-right: 0;
+}
+
+.sidebar-menu .ant-menu-item {
+  height: 40px;
+  line-height: 40px;
+  margin: 0;
+  padding: 0 16px;
+}
+
+.sidebar-menu .ant-menu-item-selected {
+  background-color: #1677ff !important;
+}
+
+.sidebar-menu .ant-menu-item-selected::after {
+  display: none;
+}
+
+/* 菜单分组标题 */
+.sidebar-menu .ant-menu-item-group-title {
+  color: #8c8c8c;
+  font-size: 12px;
+  padding: 8px 16px;
+}
+
+/* ===================================
+   Header 组件内部样式
+   =================================== */
+
+.header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 16px;
+}
+
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+
+.header-search {
+  width: 240px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ===================================
+   抽屉和面板的 z-index 管理
+   =================================== */
+
+.right-drawer {
+  z-index: 1100;
+}
+
+.log-panel {
+  z-index: 1000;
+}
+
+/* ===================================
+   遮罩层（移动端侧边栏打开时）
+   =================================== */
+
+.sidebar-overlay {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 950;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.sidebar-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ===================================
+   动画效果
+   =================================== */
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 内容区域渐入动画 */
+.layout-content > * {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* ===================================
+   打印样式
+   =================================== */
+
+@media print {
+  .layout-sidebar,
+  .layout-header,
+  .log-panel {
+    display: none !important;
+  }
+
+  .layout-content {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+}

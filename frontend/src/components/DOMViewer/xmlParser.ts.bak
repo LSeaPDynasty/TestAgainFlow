@@ -1,0 +1,107 @@
+/**
+ * DOM元素类型定义
+ */
+export interface DomElement {
+  text?: string;
+  'resource-id'?: string;
+  class?: string;
+  package?: string;
+  'content-desc'?: string;
+  checkable?: string;
+  clickable?: string;
+  enabled?: string;
+  focusable?: string;
+  focused?: string;
+  'long-clickable'?: string;
+  password?: string;
+  scrollable?: string;
+  'selected'?: string;
+  bounds?: string;
+  children?: DomElement[];
+}
+
+export interface TreeNode {
+  title: string;
+  key: string;
+  children?: TreeNode[];
+  element?: DomElement;
+}
+
+/**
+ * 解析uiautomator2的XML输出为树形结构
+ */
+function parseXmlToTree(xmlString: string): TreeNode[] {
+  if (!xmlString || xmlString.trim().length === 0) {
+    return [];
+  }
+
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+
+  // 检查解析错误
+  const parseError = xmlDoc.getElementsByTagName('parsererror');
+  if (parseError.length > 0) {
+    console.error('XML解析错误:', parseError);
+    return [];
+  }
+
+  const rootNodes = xmlDoc.documentElement.childNodes;
+  const tree: TreeNode[] = [];
+
+  for (let i = 0; i < rootNodes.length; i++) {
+    const node = rootNodes[i];
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const treeNode = convertDomNodeToTreeNode(node as Element, `${i}`);
+      if (treeNode) {
+        tree.push(treeNode);
+      }
+    }
+  }
+
+  return tree;
+}
+
+/**
+ * 将DOM节点转换为树节点
+ */
+function convertDomNodeToTreeNode(domNode: Element, key: string): TreeNode | null {
+  if (!domNode || !domNode.attributes) {
+    return null;
+  }
+
+  // 提取元素属性
+  const element: DomElement = {};
+  for (let i = 0; i < domNode.attributes.length; i++) {
+    const attr = domNode.attributes[i];
+    element[attr.name] = attr.value;
+  }
+
+  // 处理子节点
+  const children: TreeNode[] = [];
+  for (let i = 0; i < domNode.childNodes.length; i++) {
+    const childNode = domNode.childNodes[i];
+    if (childNode.nodeType === Node.ELEMENT_NODE) {
+      const childTreeNode = convertDomNodeToTreeNode(childNode as Element, `${key}-${i}`);
+      if (childTreeNode) {
+        children.push(childTreeNode);
+      }
+    }
+  }
+
+  // 构建树节点
+  const treeNode: TreeNode = {
+    key: key,
+    title: element.text || element['resource-id'] || element.class || 'Unknown',
+    element: element,
+  };
+
+  // 添加子节点
+  if (children.length > 0) {
+      return filteredData.filter(Boolean) as any;
+    treeNode.children = children;
+  }
+
+  return treeNode;
+}
+
+export default parseXmlToTree;

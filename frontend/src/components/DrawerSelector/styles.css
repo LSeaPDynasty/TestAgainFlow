@@ -1,0 +1,195 @@
+/* DrawerSelector Global Theme Styles */
+
+/* ========== Default Theme ========== */
+.drawer-selector-theme-default {
+  /* Trigger Button */
+  --trigger-bg: #ffffff;
+  --trigger-border: #d9d9d9;
+  --trigger-hover-border: #4096ff;
+  --trigger-radius: 6px;
+  --trigger-height: 32px;
+
+  /* Drawer */
+  --drawer-bg: #ffffff;
+  --drawer-border: #f0f0f0;
+  --drawer-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  --drawer-radius: 8px;
+
+  /* Header */
+  --header-bg: #fafafa;
+  --header-border: #f0f0f0;
+  --header-text: #262626;
+
+  /* List Item */
+  --item-padding: 12px 16px;
+  --item-border: #f0f0f0;
+  --item-hover-bg: #f5f5f5;
+  --item-selected-bg: #e6f7ff;
+  --item-selected-border: #1890ff;
+  --item-radius: 4px;
+  --item-height: 64px;
+
+  /* Text */
+  --text-primary: rgba(0, 0, 0, 0.85);
+  --text-secondary: rgba(0, 0, 0, 0.45);
+  --text-selected: #1890ff;
+}
+
+/* ========== Modern Theme ========== */
+.drawer-selector-theme-modern {
+  /* Trigger Button */
+  --trigger-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --trigger-border: none;
+  --trigger-text: #ffffff;
+  --trigger-radius: 8px;
+  --trigger-height: 36px;
+  --trigger-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+
+  /* Drawer */
+  --drawer-bg: #ffffff;
+  --drawer-border: none;
+  --drawer-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  --drawer-radius: 12px;
+
+  /* Header */
+  --header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --header-border: none;
+  --header-text: #ffffff;
+
+  /* List Item */
+  --item-padding: 16px 20px;
+  --item-border: #f0f0f0;
+  --item-hover-bg: linear-gradient(90deg, #f8f9ff 0%, #ffffff 100%);
+  --item-selected-bg: linear-gradient(90deg, #e8ecff 0%, #f8f9ff 100%);
+  --item-selected-border: #667eea;
+  --item-radius: 8px;
+  --item-height: 72px;
+
+  /* Text */
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a5568;
+  --text-selected: #667eea;
+}
+
+/* ========== Dark Theme ========== */
+.drawer-selector-theme-dark {
+  /* Trigger Button */
+  --trigger-bg: #1f2937;
+  --trigger-border: #374151;
+  --trigger-hover-border: #60a5fa;
+  --trigger-text: #f3f4f6;
+  --trigger-radius: 6px;
+  --trigger-height: 32px;
+
+  /* Drawer */
+  --drawer-bg: #111827;
+  --drawer-border: #374151;
+  --drawer-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  --drawer-radius: 8px;
+
+  /* Header */
+  --header-bg: #1f2937;
+  --header-border: #374151;
+  --header-text: #f3f4f6;
+
+  /* List Item */
+  --item-padding: 12px 16px;
+  --item-border: #374151;
+  --item-hover-bg: #374151;
+  --item-selected-bg: #1e3a8a20;
+  --item-selected-border: #60a5fa;
+  --item-radius: 4px;
+  --item-height: 64px;
+
+  /* Text */
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --text-selected: #60a5fa;
+}
+
+/* ========== Compact Theme ========== */
+.drawer-selector-theme-compact {
+  /* Trigger Button */
+  --trigger-bg: #ffffff;
+  --trigger-border: #d9d9d9;
+  --trigger-hover-border: #4096ff;
+  --trigger-radius: 4px;
+  --trigger-height: 28px;
+
+  /* Drawer */
+  --drawer-bg: #ffffff;
+  --drawer-border: #f0f0f0;
+  --drawer-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --drawer-radius: 4px;
+
+  /* Header */
+  --header-bg: #fafafa;
+  --header-border: #f0f0f0;
+  --header-text: #262626;
+
+  /* List Item */
+  --item-padding: 8px 12px;
+  --item-border: #f0f0f0;
+  --item-hover-bg: #fafafa;
+  --item-selected-bg: #e6f7ff;
+  --item-selected-border: #1890ff;
+  --item-radius: 2px;
+  --item-height: 48px;
+
+  /* Text */
+  --text-primary: rgba(0, 0, 0, 0.85);
+  --text-secondary: rgba(0, 0, 0, 0.45);
+  --text-selected: #1890ff;
+}
+
+/* ========== Animations ========== */
+@keyframes drawerSlideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes drawerSlideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 576px) {
+  .drawer-selector-default,
+  .drawer-selector-modern,
+  .drawer-selector-dark,
+  .drawer-selector-compact {
+    --drawer-width: 100vw !important;
+    --drawer-radius: 0 !important;
+  }
+}
+
+/* ========== Custom Scrollbar ========== */
+.drawer-selector-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.drawer-selector-content::-webkit-scrollbar-track {
+  background: var(--drawer-bg, #fff);
+}
+
+.drawer-selector-content::-webkit-scrollbar-thumb {
+  background: var(--drawer-border, #d9d9d9);
+  border-radius: 3px;
+}
+
+.drawer-selector-content::-webkit-scrollbar-thumb:hover {
+  background: var(--trigger-hover-border, #4096ff);
+}

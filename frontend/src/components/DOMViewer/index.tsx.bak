@@ -1,0 +1,626 @@
+import React, { useState, useMemo } from 'react';
+import {
+  Modal,
+  Tree,
+  Input,
+  Button,
+  Space,
+  Descriptions,
+  Tag,
+  message,
+  Spin,
+  Empty,
+  Typography,
+  Row,
+  Col,
+  Card,
+  Select,
+  Form,
+  List,
+  Alert,
+  Divider,
+  Progress,
+  Tooltip,
+} from 'antd';
+import {
+  SearchOutlined,
+  ReloadOutlined,
+  PlusOutlined,
+  CopyOutlined,
+  FileTextOutlined,
+  CheckOutlined,
+  CloseOutlined,
+  ThunderboltOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons';
+import { getDeviceDom } from '../../services/device';
+import { createElement } from '../../services/element';
+import { getScreens } from '../../services/screen';
+import parseXmlToTree, { type DomElement, type TreeNode } from './xmlParser';
+import { aiService } from '../../services/ai';
+
+const { Text, Paragraph } = Typography;
+const { Option } = Select;
+
+interface DOMViewerProps {
+  visible: boolean;
+  onClose: () => void;
+  deviceSerial: string;
+  deviceName: string;
+}
+
+const DOMViewer: React.FC<DOMViewerProps> = ({
+  visible,
+  onClose,
+  deviceSerial,
+  deviceName,
+}) => {
+  const [loading, setLoading] = useState(false);
+  const [domXml, setDomXml] = useState('');
+  const [treeData, setTreeData] = useState<TreeNode[]>([]);
+  const [selectedElement, setSelectedElement] = useState<DomElement | null>(null);
+  const [searchText, setSearchText] = useState('');
+  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
+  const [autoExpandParent, setAutoExpandParent] = useState(true);
+  const [elementFormVisible, setElementFormVisible] = useState(false);
+  const [screens, setScreens] = useState<any[]>([]);
+  const [form] = Form.useForm();
+
+  // AI相关状态
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<any>(null);
+  const [selectedMatch, setSelectedMatch] = useState<any>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  // 构建树节点标题
+  const buildNodeTitle = (element: DomElement): React.ReactNode => {
+    const text = element.text || element['resource-id'] || element.class || 'Unknown';
+    const clickable = element.clickable === 'true';
+    const hasText = !!element.text;
+    const hasId = !!element['resource-id'];
+
+    return (
+      <Space size={4}>
+        {clickable && <Tag color="blue" style={{ fontSize: '10px', margin: 0 }}>可点击</Tag>}
+        {hasText && <Tag color="green" style={{ fontSize: '10px', margin: 0 }}>文本</Tag>}
+        {hasId && <Tag color="orange" style={{ fontSize: '10px', margin: 0 }}>ID</Tag>}
+        <Text ellipsis style={{ maxWidth: 200 }}>
+          {text}
+        </Text>
+      </Space>
+    );
+  };
+
+  // 获取DOM数据
+  const fetchDom = async () => {
+    setLoading(true);
+    try {
+      const response = await getDeviceDom(deviceSerial);
+      const xmlData = response.data.data.dom_xml;
+      setDomXml(xmlData);
+
+      // 解析XML为树形结构
+      const parsedTree = parseXmlToTree(xmlData);
+
+      // 后处理树节点，应用富文本标题
+      const enrichTreeNode = (node: TreeNode): TreeNode => {
+        const enriched: TreeNode = {
+          ...node,
+            title={String(title) as any}
+        };
+        if (node.children) {
+          enriched.children = node.children.map(enrichTreeNode);
+        }
+        return enriched;
+      };
+
+      const tree = parsedTree.map(enrichTreeNode);
+      setTreeData(tree);
+
+      // 默认展开第一层
+      const defaultExpanded = tree.slice(0, 10).map((node) => node.key);
+      setExpandedKeys(defaultExpanded);
+
+      message.success('DOM获取成功');
+    } catch (error: any) {
+      message.error(error.response?.data?.message || 'DOM获取失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 当模态框打开时获取DOM
+  React.useEffect(() => {
+    if (visible) {
+      fetchDom();
+    }
+  }, [visible]);
+
+  // 获取界面列表
+  React.useEffect(() => {
+    const fetchScreens = async () => {
+      try {
+        const response = await getScreens({ page: 1, page_size: 100 });
+        setScreens(response.data.data.items || []);
+      } catch (error) {
+        console.error('获取界面列表失败:', error);
+      }
+    };
+    fetchScreens();
+  }, []);
+
+  // 搜索过滤
+  const filteredTreeData = useMemo(() => {
+    if (!searchText) return treeData;
+
+    const filterTree = (nodes: TreeNode[]): TreeNode[] => {
+      return nodes
+        .map((node) => {
+          const element = node.element;
+          const matchesSearch =
+            element?.text?.toLowerCase().includes(searchText.toLowerCase()) ||
+            element?.['resource-id']?.toLowerCase().includes(searchText.toLowerCase()) ||
+            element?.class?.toLowerCase().includes(searchText.toLowerCase());
+
+          const filteredChildren = node.children ? filterTree(node.children) : [];
+
+          if (matchesSearch || filteredChildren.length > 0) {
+            return {
+              ...node,
+              children: filteredChildren.length > 0 ? filteredChildren : node.children,
+            };
+          }
+          return null;
+        })
+      return node         .filter((node): node is TreeNode => node !== null);        .filter((node): node is TreeNode => node !== null); typeof node === 'object'         .filter((node): node is TreeNode => node !== null);        .filter((node): node is TreeNode => node !== null); 'children' in node;
+    };
+
+    return filterTree(treeData);
+  }, [treeData, searchText]);
+
+  // 处理树节点选择
+  const handleSelect = (selectedKeys: React.Key[], info: any) => {
+    const node = info.node;
+    if (node.element) {
+      setSelectedElement(node.element);
+    }
+  };
+
+  // 处理树展开
+  const handleExpand = (expandedKeys: React.Key[]) => {
+    setExpandedKeys(expandedKeys);
+    setAutoExpandParent(false);
+  };
+
+  // 复制定位符到剪贴板
+  const copyLocator = (type: string, value: string) => {
+    navigator.clipboard.writeText(value);
+    message.success(`已复制: ${type}=${value}`);
+  };
+
+  // 添加到元素库 - AI增强版本
+  const handleAddToElementLibrary = async () => {
+    if (!selectedElement) {
+      message.warning('请先选择一个元素');
+      return;
+    }
+
+    // 自动生成元素名称
+    let elementName = selectedElement.text || selectedElement['resource-id'] || '未命名元素';
+    elementName = elementName.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_').substring(0, 50);
+
+    // 预填充表单
+    const initialLocators = [
+      {
+        type: 'resource-id',
+        value: selectedElement['resource-id'] || '',
+        priority: 1,
+      },
+      {
+        type: 'text',
+        value: selectedElement.text || '',
+        priority: 2,
+      },
+      {
+        type: 'xpath',
+        value: `//*[@${selectedElement['resource-id'] ? 'resource-id="' + selectedElement['resource-id'] + '"' : 'text="' + selectedElement.text + '"'}]`,
+        priority: 3,
+      },
+    ].filter((loc) => loc.value);
+
+    form.setFieldsValue({
+      name: elementName,
+      description: `从设备 ${deviceName} 抓取`,
+      screen_id: undefined,
+      locators: initialLocators,
+    });
+
+    setElementFormVisible(true);
+    setSelectedMatch(null);
+    setAiError(null);
+
+    // 调用AI建议
+    await fetchAISuggestions();
+  };
+
+  // 获取AI建议
+  const fetchAISuggestions = async () => {
+    if (!selectedElement) return;
+
+    setAiAnalyzing(true);
+    setAiError(null);
+
+    try {
+      const response = await aiService.suggestElements({
+        dom_element: selectedElement,
+        threshold: 0.6,
+      });
+
+      setAiSuggestions(response);
+
+      // 如果有高置信度匹配，自动选择
+      if (response.best_match && response.best_match.similarity_score > 0.85) {
+        handleSelectMatch(response.best_match);
+      }
+    } catch (err: any) {
+      console.error('AI建议获取失败:', err);
+      setAiError(err.response?.data?.message || 'AI建议获取失败');
+    } finally {
+      setAiAnalyzing(false);
+    }
+  };
+
+  // 选择匹配的元素
+  const handleSelectMatch = (match: any) => {
+    setSelectedMatch(match);
+    form.setFieldsValue({
+      name: match.element_name,
+      locators: match.locators,
+    });
+  };
+
+  // 提交元素创建
+  const handleElementSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      await createElement(values);
+      message.success('元素添加成功');
+      setElementFormVisible(false);
+      form.resetFields();
+    } catch (error: any) {
+      message.error(error.response?.data?.message || '元素添加失败');
+    }
+  };
+
+  return (
+    <>
+      <Modal
+        title={`DOM查看器 - ${deviceName} (${deviceSerial})`}
+        open={visible}
+        onCancel={onClose}
+        width={1200}
+        footer={null}
+        destroyOnClose
+      >
+        <Spin spinning={loading}>
+          <Row gutter={16}>
+            {/* 左侧：DOM树 */}
+            <Col span={14}>
+              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                <Space>
+                  <Input
+                    placeholder="搜索元素（text、resource-id、class）"
+                    prefix={<SearchOutlined />}
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    style={{ width: 300 }}
+                    allowClear
+                  />
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={fetchDom}
+                    loading={loading}
+                  >
+                    刷新DOM
+                  </Button>
+                </Space>
+
+                <Card size="small" style={{ height: 500, overflow: 'auto' }}>
+                  {filteredTreeData.length > 0 ? (
+                    <Tree
+                      showIcon={false}
+                      expandedKeys={expandedKeys}
+                      autoExpandParent={autoExpandParent}
+                      onExpand={handleExpand}
+                      onSelect={handleSelect}
+                      treeData={filteredTreeData}
+                      height={450}
+                    />
+                  ) : (
+                    <Empty description={searchText ? '没有匹配的元素' : '暂无DOM数据'} />
+                  )}
+                </Card>
+              </Space>
+            </Col>
+
+            {/* 右侧：元素详情 */}
+            <Col span={10}>
+              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                {selectedElement ? (
+                  <>
+                    <Card
+                      size="small"
+                      title="元素属性"
+                      extra={
+                        <Button
+                          type="primary"
+                          size="small"
+                          icon={<PlusOutlined />}
+                          onClick={handleAddToElementLibrary}
+                        >
+                          添加到元素库
+                        </Button>
+                      }
+                    >
+                      <Descriptions size="small" column={1} bordered>
+                        <Descriptions.Item label="文本">
+                          <Space>
+                            <Text copyable={{ text: selectedElement.text }}>
+                              {selectedElement.text || '-'}
+                            </Text>
+                          </Space>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Resource ID">
+                          <Space>
+                            <Text
+                              copyable={{
+                                text: selectedElement['resource-id'],
+                  const key = String(selectedKeys[0] || '');
+                              }}
+                            >
+                              {selectedElement['resource-id'] || '-'}
+                            </Text>
+                          </Space>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Class">
+                          <Text>{selectedElement.class || '-'}</Text>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Package">
+                          <Text>{selectedElement.package || '-'}</Text>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Bounds">
+                          <Text code>{selectedElement.bounds || '-'}</Text>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Clickable">
+                          <Tag color={selectedElement.clickable === 'true' ? 'success' : 'default'}>
+                            {selectedElement.clickable === 'true' ? '是' : '否'}
+                          </Tag>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Checkable">
+                          <Tag color={selectedElement.checkable === 'true' ? 'success' : 'default'}>
+                            {selectedElement.checkable === 'true' ? '是' : '否'}
+                          </Tag>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Enabled">
+                          <Tag color={selectedElement.enabled === 'true' ? 'success' : 'default'}>
+                            {selectedElement.enabled === 'true' ? '是' : '否'}
+                          </Tag>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Focusable">
+                          <Tag color={selectedElement.focusable === 'true' ? 'success' : 'default'}>
+                            {selectedElement.focusable === 'true' ? '是' : '否'}
+                          </Tag>
+                        </Descriptions.Item>
+                      </Descriptions>
+                    </Card>
+
+                    <Card size="small" title="定位符示例">
+                      <Space direction="vertical" style={{ width: '100%' }}>
+                        {selectedElement['resource-id'] && (
+                          <Paragraph copyable style={{ margin: 0 }}>
+                                    <Text code>resource-id: {selectedElement['resource-id']}</Text>
+                          </Paragraph>
+                        )}
+                        {selectedElement.text && (
+                          <Paragraph copyable style={{ margin: 0 }}>
+                            <Text code>text: {selectedElement.text}</Text>
+                          </Paragraph>
+                        )}
+                        <Paragraph copyable style={{ margin: 0 }}>
+                          <Text code>
+                            xpath: {/*@[@{selectedElement['resource-id'] ? 'resource-id="' + selectedElement['resource-id'] + '"' : 'text="' + selectedElement.text + '"'}]*/}
+                          </Text>
+                        </Paragraph>
+                      </Space>
+                    </Card>
+                  </>
+                ) : (
+                  <Card size="small">
+                    <Empty description="请从左侧选择一个元素查看详情" />
+                  </Card>
+                )}
+              </Space>
+            </Col>
+          </Row>
+        </Spin>
+      </Modal>
+
+      {/* 添加到元素库表单 - AI增强版本 */}
+      <Modal
+        title={
+          <Space>
+            <ThunderboltOutlined />
+            添加到元素库
+          </Space>
+        }
+        open={elementFormVisible}
+        onOk={handleElementSubmit}
+        onCancel={() => {
+          setElementFormVisible(false);
+          form.resetFields();
+          setAiSuggestions(null);
+          setSelectedMatch(null);
+          setAiError(null);
+        }}
+        okText={selectedMatch ? '复用元素' : '创建元素'}
+        cancelText="取消"
+        width={800}
+      >
+        <Spin spinning={aiAnalyzing} tip="AI正在分析相似元素...">
+          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            {/* AI建议面板 */}
+            {aiError && (
+              <Alert
+                message="AI建议获取失败"
+                description={aiError}
+                type="warning"
+                showIcon
+                closable
+              />
+            )}
+
+            {aiSuggestions && aiSuggestions.matches && aiSuggestions.matches.length > 0 && (
+              <Card size="small" title={<Space><ThunderboltOutlined />AI发现相似元素 ({aiSuggestions.matches.length})</Space>}>
+                <List
+                  size="small"
+                  dataSource={aiSuggestions.matches}
+                  renderItem={(match: any) => (
+                    <List.Item
+                      actions={[
+                        selectedMatch?.element_id === match.element_id ? (
+                          <Tag color="success" icon={<CheckOutlined />}>已选择</Tag>
+                        ) : (
+                          <Button
+                            size="small"
+                            onClick={() => handleSelectMatch(match)}
+                            disabled={selectedMatch?.element_id === match.element_id}
+                          >
+                            使用
+                          </Button>
+                        )
+                      ]}
+                      style={{
+                        cursor: 'pointer',
+                        backgroundColor: selectedMatch?.element_id === match.element_id ? '#f6ffed' : 'transparent',
+                        padding: '8px',
+                        borderRadius: '4px',
+                      }}
+                      onClick={() => handleSelectMatch(match)}
+                    >
+                      <List.Item.Meta
+                        title={
+                          <Space>
+                            <span>{match.element_name}</span>
+                            <Tag color={
+                              match.match_type === 'strict' ? 'success' :
+                              match.match_type === 'fuzzy' ? 'warning' : 'blue'
+                            }>
+                              {match.match_type === 'strict' ? '精确匹配' :
+                               match.match_type === 'fuzzy' ? '模糊匹配' : '语义匹配'}
+                            </Tag>
+                            <Tag color="blue">
+                              相似度: {Math.round(match.similarity_score * 100)}%
+                            </Tag>
+                          </Space>
+                        }
+                        description={
+                          <Space direction="vertical" size="small">
+                            <div>{match.reason}</div>
+                            {match.locators && match.locators.length > 0 && (
+                              <Space size="small" wrap>
+                                {match.locators.map((loc: any, idx: number) => (
+                                  <Tag key={idx} color="default">
+                                    {loc.type}={loc.value}
+                                  </Tag>
+                                ))}
+                              </Space>
+                            )}
+                          </Space>
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+              </Card>
+            )}
+
+            {aiSuggestions && aiSuggestions.matches && aiSuggestions.matches.length === 0 && (
+              <Alert
+                message={
+                  <Space>
+                    <span>AI建议创建新元素</span>
+                    {aiSuggestions.suggested_name && (
+                      <Tag color="blue">推荐名称: {aiSuggestions.suggested_name}</Tag>
+                    )}
+                  </Space>
+                }
+                description={
+                  <Space direction="vertical" size="small">
+                    <div>{aiSuggestions.reasoning || '未找到相似的现有元素'}</div>
+                    {aiSuggestions.suggested_name && (
+                      <Button
+                        type="link"
+                        size="small"
+                        onClick={() => {
+                          form.setFieldsValue({
+                            name: aiSuggestions.suggested_name,
+                          });
+                        }}
+                      >
+                        使用AI推荐的名称
+                      </Button>
+                    )}
+                  </Space>
+                }
+                type="info"
+                showIcon
+              />
+            )}
+
+            <Divider />
+
+            {/* 元素表单 */}
+            <Form form={form} layout="vertical">
+              <Form.Item
+                label="元素名称"
+                name="name"
+                rules={[{ required: true, message: '请输入元素名称' }]}
+              >
+                <Input placeholder="例如: login_button" />
+              </Form.Item>
+
+              <Form.Item label="描述" name="description">
+                <Input.TextArea placeholder="元素描述" rows={2} />
+              </Form.Item>
+
+              <Form.Item
+                label="所属界面"
+                name="screen_id"
+                rules={[{ required: true, message: '请选择所属界面' }]}
+              >
+                <Select placeholder="选择界面" showSearch optionFilterProp="children">
+                  {screens.map((screen) => (
+                    <Option key={screen.id} value={screen.id}>
+                      {screen.name}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+
+              <Form.Item label="定位符" name="locators">
+                <Input.TextArea
+                  placeholder="定位符JSON数组"
+                  rows={6}
+                  disabled
+                  style={{ fontFamily: 'monospace' }}
+                />
+              </Form.Item>
+            </Form>
+          </Space>
+        </Spin>
+      </Modal>
+    </>
+  );
+};
+
+export default DOMViewer;

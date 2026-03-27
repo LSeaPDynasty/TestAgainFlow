@@ -1,0 +1,102 @@
+# TestFlow快速导入模板 - YAML格式
+# 版本: 1.0
+# 说明: 用于批量导入界面和元素到TestFlow平台
+
+version: "1.0"
+description: "TestFlow快速导入模板 - 用于批量导入界面和元素"
+
+# 项目信息（可选）
+project:
+  name: "示例项目"
+  description: "项目描述（可选）"
+
+# 应用信息（可选）
+app:
+  name: "示例应用"
+  package_name: "com.example.app"
+  description: "应用描述（可选）"
+
+# 界面列表
+screens:
+  - name: "登录页面"
+    activity: "com.example.app.MainActivity"
+    description: "用户登录界面"
+    elements:
+      - name: "用户名输入框"
+        description: "输入用户名的输入框"
+        locators:
+          - type: "resource-id"
+            value: "com.example.app:id/username"
+            priority: 1
+          - type: "xpath"
+            value: "//*[@text='请输入用户名']"
+            priority: 2
+
+      - name: "密码输入框"
+        description: "输入密码的输入框"
+        locators:
+          - type: "resource-id"
+            value: "com.example.app:id/password"
+            priority: 1
+          - type: "xpath"
+            value: "//*[@text='请输入密码']"
+            priority: 2
+
+      - name: "登录按钮"
+        description: "点击登录的按钮"
+        locators:
+          - type: "resource-id"
+            value: "com.example.app:id/login_btn"
+            priority: 1
+          - type: "text"
+            value: "登录"
+            priority: 2
+          - type: "xpath"
+            value: "//*[@resource-id='com.example.app:id/login_btn' or @text='登录']"
+            priority: 3
+
+  - name: "首页"
+    activity: "com.example.app.HomeActivity"
+    description: "应用首页"
+    elements:
+      - name: "用户头像"
+        description: "左上角用户头像"
+        locators:
+          - type: "resource-id"
+            value: "com.example.app:id/user_avatar"
+            priority: 1
+
+      - name: "搜索框"
+        description: "顶部搜索框"
+        locators:
+          - type: "resource-id"
+            value: "com.example.app:id/search_input"
+            priority: 1
+          - type: "hint"
+            value: "搜索"
+            priority: 2
+
+      - name: "消息图标"
+        description: "右上角消息图标"
+        locators:
+          - type: "resource-id"
+            value: "com.example.app:id/message_icon"
+            priority: 1
+          - type: "content-desc"
+            value: "消息"
+            priority: 2
+
+# 定位符类型说明
+locator_types:
+  resource-id: "通过资源ID定位（推荐，最稳定）"
+  text: "通过文本内容定位"
+  xpath: "通过XPath表达式定位（灵活但可能不稳定）"
+  content-desc: "通过content-desc属性定位"
+  hint: "通过hint属性定位"
+  class: "通过class属性定位"
+  package: "通过package属性定位"
+
+# 定位符优先级说明
+# priority: 1 - 最高优先级，优先使用
+# priority: 2 - 次优先级，作为备用
+# priority: 3 - 低优先级，最后使用
