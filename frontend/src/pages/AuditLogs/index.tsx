@@ -76,13 +76,28 @@ const AuditLogsPage: React.FC = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // 获取审计日志
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['auditLogs', query],
     queryFn: () => getAuditLogs(query),
   });
 
   const logs = data?.items || [];
   const total = data?.total || 0;
+
+  // 处理错误
+  if (error) {
+    return (
+      <div style={{ padding: 24 }}>
+        <Card>
+          <Space direction="vertical">
+            <Text type="danger">加载审计日志失败</Text>
+            <Text type="secondary">可能原因：您没有管理员权限</Text>
+            <Button onClick={() => refetch()}>重试</Button>
+          </Space>
+        </Card>
+      </div>
+    );
+  }
 
   const handleSearch = (filters: Record<string, unknown>) => {
     setQuery({

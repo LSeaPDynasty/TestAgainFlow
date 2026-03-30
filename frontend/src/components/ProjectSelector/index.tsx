@@ -21,12 +21,17 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   style = {},
 }) => {
   // 获取项目列表
-  const { data: projectsData, isLoading } = useQuery({
+  const { data: projectsData, isLoading, error } = useQuery({
     queryKey: ['projects'],
     queryFn: () => getProjects({ page: 1, page_size: 100 }),
   });
 
+  // 修复数据结构路径
   const projects = projectsData?.data?.data?.items || [];
+
+  if (error) {
+    console.error('项目加载失败:', error);
+  }
 
   return (
     <Select
@@ -38,6 +43,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
       style={{ width: 250, ...style }}
       showSearch
       optionFilterProp="children"
+      notFoundContent={isLoading ? "加载中..." : "暂无项目"}
     >
       {projects.map((project: Project) => (
         <Option key={project.id} value={project.id}>
