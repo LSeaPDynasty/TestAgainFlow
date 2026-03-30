@@ -86,12 +86,13 @@ const AuditLogsPage: React.FC = () => {
 
   // 处理错误
   if (error) {
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
     return (
       <div style={{ padding: 24 }}>
         <Card>
           <Space direction="vertical">
             <Text type="danger">加载审计日志失败</Text>
-            <Text type="secondary">可能原因：您没有管理员权限</Text>
+            <Text type="secondary">错误信息：{errorMessage}</Text>
             <Button onClick={() => refetch()}>重试</Button>
           </Space>
         </Card>

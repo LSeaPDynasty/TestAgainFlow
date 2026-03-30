@@ -97,7 +97,7 @@ export const getAuditLogs = async (
   if (query.action) params.append('action', query.action);
 
   const response = await api.get(`/permissions/audit-logs?${params.toString()}`);
-  return response.data.data.data as { items: AuditLog[]; total: number };
+  return response.data.data as { items: AuditLog[]; total: number };
 };
 
 /**
