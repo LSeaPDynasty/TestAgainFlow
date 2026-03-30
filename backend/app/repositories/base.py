@@ -1,23 +1,49 @@
 """
 Base repository - common CRUD operations
 """
-from typing import TypeVar, Generic, Type, Optional, List, Dict, Any
+from typing import TypeVar, Generic, Type, Optional, List, Dict, Any, TypeVar
+from typing import Union
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func, update, delete
+from sqlalchemy import select, func, update, delete, exc as sqlalchemy_exc
 from app.models.base import BaseModel
+from pydantic import BaseModel as PydanticBaseModel
 
 ModelType = TypeVar('ModelType', bound=BaseModel)
 
 
+class RepositoryError(Exception):
+    """Repository error with context"""
+    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+        self.message = message
+        self.details = details
+        super().__init__(message)
+
+
+class NotFoundError(RepositoryError):
+    """Record not found error"""
+    def __init__(self, model_name: str, id: int):
+        super().__init__(f"{model_name} with id {id} not found")
+
+
 class BaseRepository(Generic[ModelType]):
     """Base repository with common CRUD operations"""
+
+    # Configurable text search fields
+    TEXT_SEARCH_FIELDS = ['name', 'description', 'title']
 
     def __init__(self, model: Type[ModelType], db: Session):
         self.model = model
         self.db = db
 
     def get(self, id: int) -> Optional[ModelType]:
-        """Get by ID"""
+        """Get by ID - raises NotFoundError if not found"""
+        obj = self.db.get(self.model, id)
+        if obj is None:
+            raise NotFoundError(self.model.__name__, id)
+        return obj
+
+    def get_safe(self, id: int) -> Optional[ModelType]:
+        """Get by ID - returns None if not found (safe version)"""
         return self.db.get(self.model, id)
 
     def get_by_field(self, field: str, value: Any) -> Optional[ModelType]:
@@ -40,8 +66,8 @@ class BaseRepository(Generic[ModelType]):
         if filters:
             for key, value in filters.items():
                 if hasattr(self.model, key) and value is not None:
-                    if isinstance(value, str) and key in ['name', 'description']:
-                        # Text search for string fields
+                    if isinstance(value, str) and key in self.TEXT_SEARCH_FIELDS:
+                        # Text search for string fields (configurable)
                         stmt = stmt.where(getattr(self.model, key).ilike(f'%{value}%'))
                     else:
                         stmt = stmt.where(getattr(self.model, key) == value)
@@ -111,10 +137,19 @@ class BaseRepository(Generic[ModelType]):
         return self.db.execute(stmt.limit(1)).scalar_one_or_none() is not None
 
     def bulk_create(self, items: List[Dict[str, Any]]) -> List[ModelType]:
-        """Bulk create records"""
+        """Bulk create records with optimized refresh"""
         db_objs = [self.model(**item) for item in items]
         self.db.add_all(db_objs)
-        self.db.commit()
-        for obj in db_objs:
-            self.db.refresh(obj)
+        try:
+            self.db.commit()
+            # Optimize: batch refresh instead of individual refresh
+            if db_objs:
+                # Refresh first object to get generated IDs
+                self.db.refresh(db_objs[0])
+                # For subsequent objects, just ensure they're in session
+                for obj in db_objs[1:]:
+                    self.db.expire(obj)
+        except Exception as e:
+            self.db.rollback()
+            raise RepositoryError(f"Failed to bulk create {self.model.__name__}: {str(e)}")
         return db_objs
