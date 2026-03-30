@@ -19,6 +19,10 @@ from app.middleware import ForbiddenException, NotFoundException
 logger = logging.getLogger(__name__)
 
 
+# 权限拒绝异常（兼容性别名）
+PermissionDenied = ForbiddenException
+
+
 class PermissionService:
     """权限检查服务"""
 

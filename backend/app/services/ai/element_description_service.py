@@ -4,7 +4,7 @@ AI辅助元素描述生成服务
 """
 import logging
 from typing import Optional
-from ..ai_config_service import get_ai_config_service
+from .ai_service import get_ai_service
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ class ElementDescriptionService:
     """元素描述生成服务"""
     
     def __init__(self):
-        self.ai_service = get_ai_config_service()
+        self.ai_service = get_ai_service()
     
     async def generate_description(
         self,

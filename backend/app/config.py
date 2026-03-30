@@ -2,8 +2,10 @@
 Configuration management
 """
 import os
+import json
 import logging
-from typing import Optional
+from typing import Optional, Union, List
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 logger = logging.getLogger(__name__)
@@ -31,7 +33,7 @@ class Settings(BaseSettings):
     engine_ws_url: str = "ws://localhost:8001/ws"
 
     # CORS
-    cors_origins: list = ["http://localhost:5173", "http://localhost:3000", "http://localhost:5000", "ws://localhost:5000", "ws://localhost:8000"]
+    cors_origins: Union[str, List[str]] = ["http://localhost:5173", "http://localhost:3000", "http://localhost:5000", "ws://localhost:5000", "ws://localhost:8000"]
 
     # File storage
     screenshots_dir: str = "./data/screenshots"
@@ -60,6 +62,23 @@ class Settings(BaseSettings):
     zhipu_api_key: str = ""
     zhipu_base_url: str = "https://open.bigmodel.cn/api/paas/v4/"
     zhipu_model: str = "glm-5"
+
+    @field_validator('cors_origins', mode='before')
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """解析 CORS origins，支持逗号分隔的字符串或 JSON 数组"""
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            # 尝试解析 JSON
+            if v.startswith('['):
+                try:
+                    return json.loads(v)
+                except json.JSONDecodeError:
+                    pass
+            # 解析逗号分隔的字符串
+            return [origin.strip() for origin in v.split(',') if origin.strip()]
+        return v
 
     class Config:
         env_file = ".env"

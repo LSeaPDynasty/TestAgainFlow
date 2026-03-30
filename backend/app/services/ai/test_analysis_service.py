@@ -3,7 +3,7 @@ AI辅助测试结果分析服务
 """
 import logging
 from typing import Optional, Dict, Any
-from ..ai_config_service import get_ai_config_service
+from .ai_service import get_ai_service
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ class TestAnalysisService:
     """测试结果分析服务"""
     
     def __init__(self):
-        self.ai_service = get_ai_config_service()
+        self.ai_service = get_ai_service()
     
     async def analyze_failure(
         self,
