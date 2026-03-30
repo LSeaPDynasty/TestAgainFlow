@@ -126,6 +126,11 @@ def build_flow_detail_response(db: Session, flow: object, repo) -> FlowDetailRes
             .first()
         )
         if step:
+            # 获取元素描述
+            element_description = None
+            if step.element:
+                element_description = step.element.description
+
             steps_detail.append(
                 FlowStepDetailSchema(
                     order=fs.order_index,
@@ -134,6 +139,7 @@ def build_flow_detail_response(db: Session, flow: object, repo) -> FlowDetailRes
                     action_type=step.action_type,
                     screen_name=step.screen.name if step.screen else None,
                     element_name=step.element.name if step.element else None,
+                    element_description=element_description,
                     override_value=fs.override_value,
                 )
             )

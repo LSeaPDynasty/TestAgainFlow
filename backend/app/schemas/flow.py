@@ -54,6 +54,7 @@ class FlowStepDetailSchema(BaseModel):
     action_type: Optional[str]
     screen_name: Optional[str]
     element_name: Optional[str]
+    element_description: Optional[str] = None  # 新增：元素描述
     override_value: Optional[str]
     is_sub_flow: bool = False
 
