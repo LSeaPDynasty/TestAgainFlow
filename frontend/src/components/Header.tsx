@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge, Button, Dropdown, Space, Typography, Input } from 'antd';
+import { Badge, Button, Dropdown, Space, Typography, Input, Tag } from 'antd';
 import {
   LogoutOutlined,
   MenuFoldOutlined,
@@ -10,6 +10,8 @@ import {
   UserOutlined,
   SearchOutlined,
   ThunderboltOutlined,
+  FileTextOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -17,7 +19,7 @@ import { useAppStore } from '../store/appStore';
 import { useProject } from '../contexts/ProjectContext';
 import DrawerSelector from './DrawerSelector';
 import { getProjects } from '../services/project';
-import { clearAuthSession, getMe, getStoredUser } from '../services/auth';
+import { clearAuthSession, getMe, getStoredUser, isAdmin, type UserInfo } from '../services/auth';
 import { useHotkeys } from '../hooks/useHotkeys';
 import './Layout.css';
 
@@ -63,10 +65,17 @@ const Header: React.FC = () => {
 
   const menuItems = [
     {
+      key: 'audit-logs',
+      icon: <FileTextOutlined />,
+      label: '审计日志',
+      onClick: () => navigate('/audit-logs'),
+    },
+    {
       key: 'users',
       icon: <UserOutlined />,
-      label: 'Users',
+      label: '用户管理',
       onClick: () => navigate('/users'),
+      visible: isAdmin(me as UserInfo | null),
     },
     {
       key: 'scheduler',
@@ -77,10 +86,10 @@ const Header: React.FC = () => {
     {
       key: 'logout',
       icon: <LogoutOutlined />,
-      label: 'Logout',
+      label: '退出登录',
       onClick: handleLogout,
     },
-  ];
+  ].filter((item) => item.visible !== false);
 
   return (
     <div className="header-container">
@@ -152,7 +161,19 @@ const Header: React.FC = () => {
 
         {/* 用户菜单 */}
         <Space size={8}>
-          <Text style={{ color: '#fff' }}>{me?.username || 'Guest'}</Text>
+          <Text style={{ color: '#fff' }}>
+            {me?.username || 'Guest'}
+            {me?.role === 'super_admin' && (
+              <Tag color="red" style={{ marginLeft: 8 }}>
+                超级管理员
+              </Tag>
+            )}
+            {me?.role === 'admin' && (
+              <Tag color="orange" style={{ marginLeft: 8 }}>
+                管理员
+              </Tag>
+            )}
+          </Text>
           <Dropdown menu={{ items: menuItems }} placement="bottomRight">
             <Button
               type="text"

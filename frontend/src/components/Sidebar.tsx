@@ -21,8 +21,10 @@ import {
   MobileOutlined,
   BranchesOutlined,
   PlayCircleOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { useAppStore } from '../store/appStore';
+import { getStoredUser, isAdmin } from '../services/auth';
 import './Layout.css';
 
 type MenuItem = {
@@ -31,6 +33,7 @@ type MenuItem = {
   label: string;
   path: string;
   badge?: string | number;
+  adminOnly?: boolean;
 };
 
 type MenuSection = {
@@ -73,20 +76,37 @@ const menuSections: MenuSection[] = [
     items: [
       { key: 'dashboard', icon: <DashboardOutlined />, label: '控制台', path: '/' },
       { key: 'test-plans', icon: <ExperimentOutlined />, label: '测试计划', path: '/test-plans' },
-      { key: 'users', icon: <TeamOutlined />, label: '用户', path: '/users' },
+      { key: 'users', icon: <TeamOutlined />, label: '用户', path: '/users', adminOnly: true },
+      { key: 'audit-logs', icon: <SafetyCertificateOutlined />, label: '审计日志', path: '/audit-logs' },
       { key: 'scheduler', icon: <ScheduleOutlined />, label: '调度器', path: '/scheduler' },
     ],
   },
 ];
+
+// 根据用户权限过滤菜单
+const filterMenuByPermission = (sections: MenuSection[]): MenuSection[] => {
+  const user = getStoredUser();
+  const isUserAdmin = isAdmin(user);
+
+  return sections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => !item.adminOnly || isUserAdmin),
+    }))
+    .filter((section) => section.items.length > 0);
+};
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { sidebarCollapsed } = useAppStore();
 
+  // 根据权限过滤菜单
+  const filteredMenuSections = React.useMemo(() => filterMenuByPermission(menuSections), []);
+
   const handleMenuClick = ({ key }: { key: string }) => {
     // 查找所有菜单项
-    for (const section of menuSections) {
+    for (const section of filteredMenuSections) {
       const item = section.items.find((menuItem) => menuItem.key === key);
       if (item) {
         navigate(item.path);
@@ -97,7 +117,7 @@ const Sidebar: React.FC = () => {
 
   const getSelectedKey = () => {
     const path = location.pathname;
-    for (const section of menuSections) {
+    for (const section of filteredMenuSections) {
       const item = section.items.find((menuItem) =>
         path.startsWith(menuItem.path) && menuItem.path !== '/'
       );
@@ -107,7 +127,7 @@ const Sidebar: React.FC = () => {
   };
 
   // 生成 Menu items
-  const menuItems = menuSections.flatMap((section) => [
+  const menuItems = filteredMenuSections.flatMap((section) => [
     { type: 'group' as const, label: section.label },
     ...section.items.map((item) => ({
       key: item.key,

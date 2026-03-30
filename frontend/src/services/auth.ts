@@ -4,7 +4,7 @@ export interface UserInfo {
   id: number;
   username: string;
   email?: string | null;
-  role: 'admin' | 'member' | string;
+  role: 'member' | 'admin' | 'super_admin' | string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -75,4 +75,20 @@ export const getMe = async (): Promise<UserInfo> => {
 export const getUsers = async (): Promise<UserInfo[]> => {
   const response = await api.get('/users');
   return response.data.data as UserInfo[];
+};
+
+/**
+ * 检查用户是否是管理员
+ */
+export const isAdmin = (user: UserInfo | null): boolean => {
+  if (!user) return false;
+  return user.role === 'admin' || user.role === 'super_admin';
+};
+
+/**
+ * 检查用户是否是超级管理员
+ */
+export const isSuperAdmin = (user: UserInfo | null): boolean => {
+  if (!user) return false;
+  return user.role === 'super_admin';
 };

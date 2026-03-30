@@ -25,6 +25,8 @@ const Tags = lazy(() => import('./pages/Tags'));
 const Testcases = lazy(() => import('./pages/Testcases'));
 const UsersPage = lazy(() => import('./pages/Users'));
 const ScheduledJobs = lazy(() => import('./pages/ScheduledJobs'));
+const ProjectMembers = lazy(() => import('./pages/ProjectMembers'));
+const AuditLogs = lazy(() => import('./pages/AuditLogs'));
 
 const RouteFallback: React.FC = () => (
   <div
@@ -64,9 +66,11 @@ function App() {
               <Route path="tags" element={<Tags />} />
               <Route path="runs" element={<Runs />} />
               <Route path="projects" element={<Projects />} />
+              <Route path="projects/:projectId/members" element={<ProjectMembers />} />
               <Route path="scheduled-jobs" element={<ScheduledJobs />} />
               <Route path="scheduler" element={<SchedulerPage />} />
               <Route path="users" element={<UsersPage />} />
+              <Route path="audit-logs" element={<AuditLogs />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Route>

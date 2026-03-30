@@ -21,6 +21,7 @@ import {
   DeleteOutlined,
   EyeOutlined,
   ReloadOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProjects, createProject, updateProject, deleteProject, type Project } from '../../services/project';
@@ -229,7 +230,7 @@ const Projects: React.FC = () => {
     {
       title: '操作',
       key: 'actions',
-      width: 180,
+      width: 240,
       fixed: 'right' as const,
       render: (_: any, record: Project) => (
         <Space size="small">
@@ -240,6 +241,14 @@ const Projects: React.FC = () => {
             onClick={() => window.location.href = `#/projects/${record.id}`}
           >
             详情
+          </Button>
+          <Button
+            type="link"
+            size="small"
+            icon={<TeamOutlined />}
+            onClick={() => window.location.href = `#/projects/${record.id}/members`}
+          >
+            成员
           </Button>
           <Button
             type="link"
