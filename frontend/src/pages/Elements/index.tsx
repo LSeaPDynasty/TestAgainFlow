@@ -622,14 +622,26 @@ const Elements: React.FC = () => {
           </Form.Item>
 
           <Form.Item label="AI辅助">
-            <AIElementDescription
-              elementName={form.getFieldValue('name') || ''}
-              screenName={form.getFieldValue('screen_id') ? screensList.find((s: Screen) => s.id === form.getFieldValue('screen_id'))?.name || '' : ''}
-              locators={form.getFieldValue('locators') || []}
-              onDescriptionGenerated={(description) => {
-                form.setFieldValue('description', description);
+            <Form.Item noStyle shouldUpdate={(prevValues, nextValues) => {
+              return prevValues.name !== nextValues.name ||
+                     prevValues.screen_id !== nextValues.screen_id ||
+                     prevValues.locators !== nextValues.locators;
+            }}>
+              {({ getFieldValue }) => {
+                const screenId = getFieldValue('screen_id');
+                const screen = screensList.find((s: Screen) => s.id === screenId);
+                return (
+                  <AIElementDescription
+                    elementName={getFieldValue('name') || ''}
+                    screenName={screen?.name || ''}
+                    locators={getFieldValue('locators') || []}
+                    onDescriptionGenerated={(description) => {
+                      form.setFieldValue('description', description);
+                    }}
+                  />
+                );
               }}
-            />
+            </Form.Item>
           </Form.Item>
 
           <Form.Item
