@@ -11,6 +11,8 @@ from contextvars import ContextVar
 # 使用 ContextVar 存储当前任务 ID，这样可以在线程/异步上下文中安全传递
 current_task_id: ContextVar[Optional[str]] = ContextVar('current_task_id', default=None)
 
+logger = logging.getLogger(__name__)
+
 
 class BackendLogHandler(logging.Handler):
     """
@@ -110,7 +112,7 @@ class BackendLogHandler(logging.Handler):
             })
         except Exception as e:
             # 发送失败也不应该影响主流程
-            print(f"Failed to send log to backend: {e}")
+            logger.debug(f"Failed to send log to backend: {e}")
 
 
 def set_current_task_id(task_id: str):

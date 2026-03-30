@@ -18,8 +18,10 @@ from .run_history import RunHistory
 from .run_log import RunLog
 from .screenshot import RunScreenshot
 from .backup import Backup
-from .user import User
+from .user import User, UserRole
 from .project import Project
+from .project_member import ProjectMember, ProjectMemberRole
+from .audit_log import AuditLog, AuditAction
 from .scheduled_job import ScheduledJob
 from .ai_config import AIConfig, AIRequestLog, AICache
 from .executor import Executor, ActionType, ExecutorActionCapability
@@ -53,7 +55,12 @@ __all__ = [
     'RunScreenshot',
     'Backup',
     'User',
+    'UserRole',
     'Project',
+    'ProjectMember',
+    'ProjectMemberRole',
+    'AuditLog',
+    'AuditAction',
     'ScheduledJob',
     'AIConfig',
     'AIRequestLog',

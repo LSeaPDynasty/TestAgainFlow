@@ -1,6 +1,7 @@
 """
 FastAPI application entry point
 """
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -10,26 +11,28 @@ from app.database import init_db
 from app.routers import api_router, websocket_router
 from app.schemas.common import ApiResponse
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
     # Startup
-    print("Initializing TestFlow API...")
+    logger.info("Initializing TestFlow API...")
     # Skip database initialization during tests
     import os
     if not os.getenv("PYTEST_CURRENT_TEST"):
         try:
             init_db()
-            print("Database initialized successfully")
+            logger.info("Database initialized successfully")
         except Exception as e:
-            print(f"Warning: Database initialization failed: {e}")
-            print("API will start but database operations may fail")
+            logger.warning(f"Database initialization failed: {e}")
+            logger.warning("API will start but database operations may fail")
     else:
-        print("Running in test mode - skipping database initialization")
+        logger.info("Running in test mode - skipping database initialization")
     yield
     # Shutdown
-    print("Shutting down TestFlow API...")
+    logger.info("Shutting down TestFlow API...")
 
 
 # Create FastAPI application
@@ -43,7 +46,7 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 允许所有源
+    allow_origins=settings.cors_origins,  # 使用配置中的允许源
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

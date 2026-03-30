@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.repositories.project_repo import ProjectRepository
 from app.schemas.project import ProjectCreate, ProjectUpdate
+from app.services.permission_service import PermissionService
 
 
 @dataclass
@@ -25,6 +26,7 @@ def list_projects(
     status: Optional[str],
     priority: Optional[str],
     search: Optional[str],
+    user_id: Optional[int] = None,
 ):
     repo = ProjectRepository(db)
     projects, total = repo.list(
@@ -34,6 +36,13 @@ def list_projects(
         priority=priority,
         search=search,
     )
+
+    # 如果指定了用户ID，过滤出用户有权限访问的项目
+    if user_id is not None:
+        projects = PermissionService.filter_accessible_projects(db, user_id, projects)
+        total = len(projects)
+        # 重新应用分页
+        projects = projects[skip:skip + limit]
 
     items_with_stats = []
     for project in projects:

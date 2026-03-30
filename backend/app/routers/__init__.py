@@ -14,6 +14,7 @@ from .impact import router as impact_router
 from .bulk_import import router as bulk_import_router
 from .profiles import router as profiles_router
 from .projects import router as projects_router
+from .permissions import router as permissions_router
 from .reports import router as reports_router
 from .run_logs import router as run_logs_router
 from .runs import router as runs_router
@@ -58,6 +59,7 @@ api_router.include_router(scheduled_jobs_router)
 api_router.include_router(users_router)
 api_router.include_router(bulk_import_router)
 api_router.include_router(ai_router)
+api_router.include_router(permissions_router)
 
 websocket_router = APIRouter()
 websocket_router.include_router(websocket_base_router)

@@ -4,6 +4,7 @@ Manages AI provider configurations with encryption
 """
 import os
 import json
+import logging
 from typing import Optional, List
 from cryptography.fernet import Fernet
 from sqlalchemy.orm import Session
@@ -13,6 +14,8 @@ from app.models.profile import Profile
 from app.config import settings
 from ..ai.base import AIProviderConfig, ProviderType
 from ..ai.providers import OpenAIProvider, ZhipuProvider, CustomHTTPProvider
+
+logger = logging.getLogger(__name__)
 
 
 class AIConfigService:
@@ -29,7 +32,7 @@ class AIConfigService:
         if not key:
             # Generate a key for development (not secure for production)
             key = Fernet.generate_key()
-            print(f"Warning: Using generated encryption key. Set AI_CONFIG_ENCRYPTION_KEY env var for production.")
+            logger.warning("Using generated encryption key. Set AI_CONFIG_ENCRYPTION_KEY env var for production.")
 
         # Ensure key is bytes
         if isinstance(key, str):

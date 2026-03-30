@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.dependencies import get_db_session
+from app.dependencies import get_db_session, require_auth
 from app.schemas.common import ApiResponse, PaginatedResponse
 from app.schemas.run import BatchRunCreate, BatchRunResponse, LogEvent, RunCreate, RunResponse, RunStatusResponse, ScreenshotsResponse
 from app.services.run_orchestrator import (
@@ -52,7 +52,11 @@ def list_runs(
 
 
 @router.post("", response_model=ApiResponse[RunResponse])
-def start_run(run_in: RunCreate, db: Session = Depends(get_db_session)):
+def start_run(
+    run_in: RunCreate,
+    db: Session = Depends(get_db_session),
+    auth: dict = Depends(require_auth)
+):
     response, validation_error = start_run_service(db, run_in)
     if validation_error:
         return error(code=validation_error.code, message=validation_error.message, data=validation_error.data)
@@ -73,7 +77,11 @@ def get_run_status_alias(task_id: str, db: Session = Depends(get_db_session)):
 
 
 @router.post("/{task_id}/stop", response_model=ApiResponse)
-def stop_run(task_id: str, db: Session = Depends(get_db_session)):
+def stop_run(
+    task_id: str,
+    db: Session = Depends(get_db_session),
+    auth: dict = Depends(require_auth)
+):
     response, validation_error = stop_run_service(db, task_id)
     if validation_error:
         return error(code=validation_error.code, message=validation_error.message, data=validation_error.data)
@@ -81,7 +89,11 @@ def stop_run(task_id: str, db: Session = Depends(get_db_session)):
 
 
 @router.post("/{task_id}/pause", response_model=ApiResponse)
-def pause_run(task_id: str, db: Session = Depends(get_db_session)):
+def pause_run(
+    task_id: str,
+    db: Session = Depends(get_db_session),
+    auth: dict = Depends(require_auth)
+):
     response, validation_error = pause_run_service(db, task_id)
     if validation_error:
         return error(code=validation_error.code, message=validation_error.message, data=validation_error.data)
@@ -89,7 +101,11 @@ def pause_run(task_id: str, db: Session = Depends(get_db_session)):
 
 
 @router.post("/{task_id}/resume", response_model=ApiResponse)
-def resume_run(task_id: str, db: Session = Depends(get_db_session)):
+def resume_run(
+    task_id: str,
+    db: Session = Depends(get_db_session),
+    auth: dict = Depends(require_auth)
+):
     response, validation_error = resume_run_service(db, task_id)
     if validation_error:
         return error(code=validation_error.code, message=validation_error.message, data=validation_error.data)

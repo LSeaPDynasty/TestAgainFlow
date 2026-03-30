@@ -2,8 +2,11 @@
 Configuration management
 """
 import os
+import logging
 from typing import Optional
 from pydantic_settings import BaseSettings
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -62,6 +65,29 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._validate_security_settings()
+
+    def _validate_security_settings(self):
+        """验证安全配置"""
+        # 检查生产环境配置
+        if not self.debug:
+            # 检查auth_secret
+            if self.auth_secret in ["change-me-in-production", ""]:
+                logger.warning("SECURITY WARNING: Using default auth_secret in non-debug mode. Set AUTH_SECRET environment variable.")
+
+            # 检查加密密钥
+            if self.ai_config_encryption_key in ["change-me-in-production-use-openssl-rand-32", ""]:
+                logger.warning("SECURITY WARNING: Using default encryption key in non-debug mode. Set AI_CONFIG_ENCRYPTION_KEY environment variable.")
+
+        # 开发环境也给出提示
+        if self.debug:
+            if self.auth_secret == "change-me-in-production":
+                logger.info("Development mode: Using default auth_secret. For production, set AUTH_SECRET environment variable.")
+            if self.ai_config_encryption_key == "change-me-in-production-use-openssl-rand-32":
+                logger.info("Development mode: Using default encryption key. For production, set AI_CONFIG_ENCRYPTION_KEY environment variable.")
 
 
 # Create settings instance

@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.dependencies import get_db_session
+from app.dependencies import get_db_session, require_auth
 from app.schemas.common import ApiResponse, PaginatedResponse
 from app.schemas.testcase import (
     DependencyChainResponse,
@@ -62,7 +62,11 @@ def get_testcase(testcase_id: int, db: Session = Depends(get_db_session)):
 
 
 @router.post("", response_model=ApiResponse[TestcaseResponse])
-def create_testcase(testcase_in: TestcaseCreate, db: Session = Depends(get_db_session)):
+def create_testcase(
+    testcase_in: TestcaseCreate,
+    db: Session = Depends(get_db_session),
+    auth: dict = Depends(require_auth)
+):
     response, validation_error = create_testcase_service(db, testcase_in)
     if validation_error:
         return error(code=validation_error.code, message=validation_error.message)
@@ -70,7 +74,12 @@ def create_testcase(testcase_in: TestcaseCreate, db: Session = Depends(get_db_se
 
 
 @router.put("/{testcase_id}", response_model=ApiResponse[TestcaseResponse])
-def update_testcase(testcase_id: int, testcase_in: TestcaseUpdate, db: Session = Depends(get_db_session)):
+def update_testcase(
+    testcase_id: int,
+    testcase_in: TestcaseUpdate,
+    db: Session = Depends(get_db_session),
+    auth: dict = Depends(require_auth)
+):
     response, validation_error = update_testcase_service(db, testcase_id, testcase_in)
     if validation_error:
         return error(code=validation_error.code, message=validation_error.message)
@@ -78,7 +87,11 @@ def update_testcase(testcase_id: int, testcase_in: TestcaseUpdate, db: Session =
 
 
 @router.delete("/{testcase_id}", response_model=ApiResponse)
-def delete_testcase(testcase_id: int, db: Session = Depends(get_db_session)):
+def delete_testcase(
+    testcase_id: int,
+    db: Session = Depends(get_db_session),
+    auth: dict = Depends(require_auth)
+):
     validation_error, err_data = delete_testcase_service(db, testcase_id)
     if validation_error:
         return error(code=validation_error.code, message=validation_error.message, data=err_data)
@@ -86,7 +99,12 @@ def delete_testcase(testcase_id: int, db: Session = Depends(get_db_session)):
 
 
 @router.post("/{testcase_id}/duplicate", response_model=ApiResponse[TestcaseResponse])
-def duplicate_testcase(testcase_id: int, req: TestcaseDuplicateRequest, db: Session = Depends(get_db_session)):
+def duplicate_testcase(
+    testcase_id: int,
+    req: TestcaseDuplicateRequest,
+    db: Session = Depends(get_db_session),
+    auth: dict = Depends(require_auth)
+):
     response, validation_error = duplicate_testcase_service(db, testcase_id, req.new_name)
     if validation_error:
         return error(code=validation_error.code, message=validation_error.message)
