@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from app.repositories.project_repo import ProjectRepository
 from app.schemas.project import ProjectCreate, ProjectUpdate
 from app.services.permission_service import PermissionService
+from app.utils.cache import cache, cached
+from app.middleware import ConflictException, NotFoundException
 
 
 @dataclass
@@ -66,10 +68,14 @@ def get_project(db: Session, project_id: int) -> Optional[dict]:
 def create_project(db: Session, project_in: ProjectCreate) -> tuple[Optional[dict], Optional[ServiceValidationError]]:
     repo = ProjectRepository(db)
     if repo.get_by_name(project_in.name):
-        return None, ServiceValidationError(code=4009, message=f"Project name already exists: {project_in.name}")
+        raise ConflictException(f"Project name already exists: {project_in.name}")
     project = repo.create(project_in.model_dump())
     payload = project.to_dict()
     payload["statistics"] = repo.get_statistics(project.id)
+
+    # 清除项目列表缓存
+    cache.clear_pattern("project_list:*")
+
     return payload, None
 
 
@@ -82,14 +88,19 @@ def update_project(
     repo = ProjectRepository(db)
     project = repo.get(project_id)
     if not project:
-        return None, ServiceValidationError(code=4004, message=f"Project not found: id={project_id}")
+        raise NotFoundException(f"Project not found: id={project_id}")
 
     if project_in.name and project_in.name != project.name and repo.get_by_name(project_in.name):
-        return None, ServiceValidationError(code=4009, message=f"Project name already exists: {project_in.name}")
+        raise ConflictException(f"Project name already exists: {project_in.name}")
 
     updated = repo.update(project, project_in.model_dump(exclude_unset=True))
     payload = updated.to_dict()
     payload["statistics"] = repo.get_statistics(updated.id)
+
+    # 清除相关缓存
+    cache.delete(f"project_statistics:{project_id}")
+    cache.clear_pattern("project_list:*")
+
     return payload, None
 
 
@@ -97,14 +108,29 @@ def delete_project(db: Session, project_id: int) -> Optional[ServiceValidationEr
     repo = ProjectRepository(db)
     project = repo.get(project_id)
     if not project:
-        return ServiceValidationError(code=4004, message=f"Project not found: id={project_id}")
+        raise NotFoundException(f"Project not found: id={project_id}")
     repo.delete(project)
+
+    # 清除相关缓存
+    cache.delete(f"project_statistics:{project_id}")
+    cache.clear_pattern("project_list:*")
+
     return None
 
 
 def get_project_statistics(db: Session, project_id: int) -> tuple[Optional[dict], Optional[ServiceValidationError]]:
+    # 先检查缓存
+    cache_key = f"project_statistics:{project_id}"
+    cached_stats = cache.get(cache_key)
+    if cached_stats is not None:
+        return cached_stats, None
+
     repo = ProjectRepository(db)
     project = repo.get(project_id)
     if not project:
-        return None, ServiceValidationError(code=4004, message=f"Project not found: id={project_id}")
-    return repo.get_statistics(project_id), None
+        raise NotFoundException(f"Project not found: id={project_id}")
+
+    stats = repo.get_statistics(project_id)
+    # 缓存统计信息，TTL设置为5分钟（300秒）
+    cache.set(cache_key, stats, ttl=300)
+    return stats, None

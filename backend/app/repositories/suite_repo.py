@@ -5,6 +5,8 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import select, func
 from app.models.suite import Suite, SuiteTestcase
+from app.models.testcase import TestcaseFlow
+from app.models.flow import Flow, FlowStep
 from app.repositories.base import BaseRepository
 
 
@@ -29,7 +31,7 @@ class SuiteRepository(BaseRepository[Suite]):
         limit: int = 20,
         project_id: Optional[int] = None
     ) -> tuple[List[Dict[str, Any]], int]:
-        """List suites with testcase counts"""
+        """List suites with testcase counts - OPTIMIZED VERSION"""
         from app.models.flow import Flow, FlowStep
         from app.models.step import Step
 
@@ -41,41 +43,44 @@ class SuiteRepository(BaseRepository[Suite]):
         # 获取套件数据
         suites_data = []
         for suite in self.db.execute(query.offset(skip).limit(limit)).scalars():
-            # 获取套件的用例数
+            # 获取套件的用例数（1次查询）
             testcase_result = self.db.execute(
                 select(func.count(SuiteTestcase.id))
                 .where(SuiteTestcase.suite_id == suite.id)
             )
             testcase_count = testcase_result.scalar() or 0
 
-            # 计算总步骤数
-            total_step_count = 0
-
-            # 获取套件的所有用例
+            # 计算总步骤数 - 使用聚合查询避免N+1（1次查询）
+            # 通过SuiteTestcase关联TestcaseFlow获取所有flow_id
             suite_testcases = self.db.execute(
-                select(SuiteTestcase)
+                select(TestcaseFlow.flow_id)
+                .join(SuiteTestcase, TestcaseFlow.testcase_id == SuiteTestcase.testcase_id)
                 .where(SuiteTestcase.suite_id == suite.id)
-                .order_by(SuiteTestcase.order_index)
+                .distinct()
             ).scalars()
 
-            for st in suite_testcases:
-                # 获取用例的所有流程
-                from app.models.testcase import TestcaseFlow
-                testcase_flows = self.db.execute(
-                    select(TestcaseFlow)
-                    .where(TestcaseFlow.testcase_id == st.testcase_id)
+            if suite_testcases:
+                # 批量获取所有flow的flow_type（1次查询）
+                flow_types = self.db.execute(
+                    select(Flow.id, Flow.flow_type)
+                    .where(Flow.id.in_(suite_testcases))
                 ).scalars()
 
-                for tf in testcase_flows:
-                    # 获取flow的步骤数
-                    flow = self.db.execute(select(Flow).where(Flow.id == tf.flow_id)).scalar_one_or_none()
-                    if flow and flow.flow_type == 'standard':
-                        # 标准flow: 统计flow_steps
-                        step_result = self.db.execute(
-                            select(func.count(FlowStep.id))
-                            .where(FlowStep.flow_id == tf.flow_id)
-                        ).scalar()
-                        total_step_count += step_result or 0
+                # 计算标准flow的总步骤数
+                standard_flow_ids = [f[0] for f in flow_types if f[1] == 'standard']
+                if standard_flow_ids:
+                    # 批量获取所有标准flow的步骤数（1次查询）
+                    step_counts = self.db.execute(
+                        select(FlowStep.flow_id, func.count(FlowStep.id))
+                        .where(FlowStep.flow_id.in_(standard_flow_ids))
+                        .group_by(FlowStep.flow_id)
+                    ).all()
+
+                    total_step_count = sum(count for _, count in step_counts)
+                else:
+                    total_step_count = 0
+            else:
+                total_step_count = 0
 
             suites_data.append({
                 'id': suite.id,

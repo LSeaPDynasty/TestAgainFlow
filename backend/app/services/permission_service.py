@@ -13,15 +13,10 @@ from app.models.element import Element
 from app.models.step import Step
 from app.models.flow import Flow
 from app.models.testcase import Testcase
+from app.utils.cache import cache
+from app.middleware import ForbiddenException, NotFoundException
 
 logger = logging.getLogger(__name__)
-
-
-class PermissionDenied(Exception):
-    """权限拒绝异常"""
-    def __init__(self, message: str = "Permission denied"):
-        self.message = message
-        super().__init__(self.message)
 
 
 class PermissionService:
@@ -54,13 +49,25 @@ class PermissionService:
         Returns:
             项目成员角色，如果用户不是项目成员则返回None
         """
+        # 检查缓存
+        cache_key = f"project_role:{project_id}:{user_id}"
+        cached_role = cache.get(cache_key)
+        if cached_role is not None:
+            return ProjectMemberRole(cached_role) if cached_role else None
+
         member = db.query(ProjectMember).filter(
             ProjectMember.project_id == project_id,
             ProjectMember.user_id == user_id
         ).first()
 
         if member:
-            return ProjectMemberRole(member.role)
+            role = member.role
+            # 缓存角色信息，TTL设置为10分钟（600秒）
+            cache.set(cache_key, role, ttl=600)
+            return ProjectMemberRole(role)
+
+        # 缓存空结果，避免重复查询
+        cache.set(cache_key, None, ttl=600)
         return None
 
     @classmethod
@@ -98,18 +105,40 @@ class PermissionService:
     @classmethod
     def is_system_admin(cls, db: Session, user_id: int) -> bool:
         """检查用户是否是系统管理员"""
+        # 检查缓存
+        cache_key = f"is_system_admin:{user_id}"
+        cached_result = cache.get(cache_key)
+        if cached_result is not None:
+            return cached_result
+
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
+            cache.set(cache_key, False, ttl=600)
             return False
-        return user.role in [UserRole.ADMIN, UserRole.SUPER_ADMIN]
+
+        result = user.role in [UserRole.ADMIN, UserRole.SUPER_ADMIN]
+        # 缓存结果，TTL设置为10分钟（600秒）
+        cache.set(cache_key, result, ttl=600)
+        return result
 
     @classmethod
     def is_super_admin(cls, db: Session, user_id: int) -> bool:
         """检查用户是否是超级管理员"""
+        # 检查缓存
+        cache_key = f"is_super_admin:{user_id}"
+        cached_result = cache.get(cache_key)
+        if cached_result is not None:
+            return cached_result
+
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
+            cache.set(cache_key, False, ttl=600)
             return False
-        return user.role == UserRole.SUPER_ADMIN
+
+        result = user.role == UserRole.SUPER_ADMIN
+        # 缓存结果，TTL设置为10分钟（600秒）
+        cache.set(cache_key, result, ttl=600)
+        return result
 
     @classmethod
     def check_project_access(cls, db: Session, project_id: int, user_id: int, require_role: Optional[ProjectMemberRole] = None):
@@ -132,14 +161,14 @@ class PermissionService:
         # 检查是否是项目成员
         role = cls.get_project_role(db, project_id, user_id)
         if not role:
-            raise PermissionDenied(f"User {user_id} is not a member of project {project_id}")
+            raise ForbiddenException(f"User {user_id} is not a member of project {project_id}")
 
         # 检查角色级别
         if require_role:
             required_level = cls.ROLE_HIERARCHY.get(require_role, 0)
             user_level = cls.ROLE_HIERARCHY.get(role, 0)
             if user_level < required_level:
-                raise PermissionDenied(
+                raise ForbiddenException(
                     f"User {user_id} requires {require_role} role or higher for project {project_id}"
                 )
 
@@ -153,10 +182,10 @@ class PermissionService:
             user_id: 用户ID
 
         Raises:
-            PermissionDenied: 如果不是系统管理员
+            ForbiddenException: 如果不是系统管理员
         """
         if not cls.is_system_admin(db, user_id):
-            raise PermissionDenied(f"User {user_id} is not a system administrator")
+            raise ForbiddenException(f"User {user_id} is not a system administrator")
 
     @classmethod
     def check_super_admin(cls, db: Session, user_id: int):
@@ -168,10 +197,10 @@ class PermissionService:
             user_id: 用户ID
 
         Raises:
-            PermissionDenied: 如果不是超级管理员
+            ForbiddenException: 如果不是超级管理员
         """
         if not cls.is_super_admin(db, user_id):
-            raise PermissionDenied(f"User {user_id} is not a super administrator")
+            raise ForbiddenException(f"User {user_id} is not a super administrator")
 
     @classmethod
     def get_accessible_projects(cls, db: Session, user_id: int) -> List[int]:
@@ -185,16 +214,26 @@ class PermissionService:
         Returns:
             项目ID列表
         """
+        # 检查缓存
+        cache_key = f"accessible_projects:{user_id}"
+        cached_projects = cache.get(cache_key)
+        if cached_projects is not None:
+            return cached_projects
+
         # 超级管理员可以访问所有项目
         if cls.is_super_admin(db, user_id):
             all_projects = db.query(Project).all()
-            return [p.id for p in all_projects]
+            project_ids = [p.id for p in all_projects]
+        else:
+            # 普通用户只能访问自己是成员的项目
+            memberships = db.query(ProjectMember).filter(
+                ProjectMember.user_id == user_id
+            ).all()
+            project_ids = [m.project_id for m in memberships]
 
-        # 普通用户只能访问自己是成员的项目
-        memberships = db.query(ProjectMember).filter(
-            ProjectMember.user_id == user_id
-        ).all()
-        return [m.project_id for m in memberships]
+        # 缓存结果，TTL设置为5分钟（300秒）
+        cache.set(cache_key, project_ids, ttl=300)
+        return project_ids
 
     @classmethod
     def filter_accessible_projects(cls, db: Session, user_id: int, projects: List[Project]) -> List[Project]:
@@ -259,10 +298,11 @@ class PermissionService:
             require_role: 需要的最低项目角色
 
         Raises:
-            PermissionDenied: 如果没有权限
+            ForbiddenException: 如果没有权限
+            NotFoundException: 如果资源不存在
         """
         project_id = cls.get_resource_project_id(db, resource_type, resource_id)
         if not project_id:
-            raise PermissionDenied(f"Resource {resource_type}:{resource_id} not found or has no project")
+            raise NotFoundException(f"Resource {resource_type}:{resource_id} not found or has no project")
 
         cls.check_project_access(db, project_id, user_id, require_role)

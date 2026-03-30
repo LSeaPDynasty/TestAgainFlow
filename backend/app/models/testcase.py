@@ -1,7 +1,7 @@
 """
 Testcase model - complete test scenarios
 """
-from sqlalchemy import Column, String, Text, Integer, ForeignKey, JSON, Enum, Boolean
+from sqlalchemy import Column, String, Text, Integer, ForeignKey, JSON, Enum, Boolean, Index
 from sqlalchemy.orm import relationship
 from .base import BaseModel, Base
 
@@ -50,6 +50,14 @@ class TestcaseFlow(BaseModel):
     # Relationships
     testcase = relationship('Testcase', back_populates='testcase_flows')
     flow = relationship('Flow')
+
+    # Indexes for query optimization - composite indexes for common join patterns
+    __table_args__ = (
+        Index('ix_testcase_flow_testcase_id', 'testcase_id'),
+        Index('ix_testcase_flow_flow_id', 'flow_id'),
+        Index('ix_testcase_flow_testcase_order', 'testcase_id', 'order_index'),
+        Index('ix_testcase_flow_enabled', 'enabled'),
+    )
 
     def __repr__(self):
         return f"<TestcaseFlow(testcase_id={self.testcase_id}, flow_id={self.flow_id}, role='{self.flow_role}')>"

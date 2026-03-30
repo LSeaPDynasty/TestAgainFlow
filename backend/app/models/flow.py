@@ -1,7 +1,7 @@
 """
 Flow and FlowStep models - flow orchestration
 """
-from sqlalchemy import Column, String, Text, Integer, ForeignKey, JSON, Enum
+from sqlalchemy import Column, String, Text, Integer, ForeignKey, JSON, Enum, Index
 import sqlalchemy
 from sqlalchemy.orm import relationship
 from .base import BaseModel, Base
@@ -35,6 +35,12 @@ class Flow(BaseModel):
     )
     tags = relationship('Tag', secondary='flow_tags', back_populates='flows')
 
+    # Indexes for query optimization
+    __table_args__ = (
+        Index('ix_flow_project_id', 'project_id'),
+        Index('ix_flow_type', 'flow_type'),
+    )
+
     def __repr__(self):
         return f"<Flow(id={self.id}, name='{self.name}', type='{self.flow_type}')>"
 
@@ -63,6 +69,13 @@ class FlowStep(BaseModel):
         'Flow',
         foreign_keys=[sub_flow_id],
         remote_side='Flow.id'
+    )
+
+    # Indexes for query optimization - composite indexes for common join patterns
+    __table_args__ = (
+        Index('ix_flow_step_flow_id', 'flow_id'),
+        Index('ix_flow_step_step_id', 'step_id'),
+        Index('ix_flow_step_flow_order', 'flow_id', 'order_index'),
     )
 
     def __repr__(self):

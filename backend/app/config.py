@@ -72,22 +72,49 @@ class Settings(BaseSettings):
 
     def _validate_security_settings(self):
         """验证安全配置"""
-        # 检查生产环境配置
+        # 检查生产环境配置 - 更严格的验证
         if not self.debug:
-            # 检查auth_secret
-            if self.auth_secret in ["change-me-in-production", ""]:
-                logger.warning("SECURITY WARNING: Using default auth_secret in non-debug mode. Set AUTH_SECRET environment variable.")
+            # 检查auth_secret - 生产环境必须设置
+            if not self.auth_secret or self.auth_secret in ["change-me-in-production", ""]:
+                raise ValueError(
+                    "SECURITY ERROR: AUTH_SECRET must be set in production environment. "
+                    "Set a strong random string via AUTH_SECRET environment variable. "
+                    "Generate one with: openssl rand -hex 32"
+                )
 
-            # 检查加密密钥
-            if self.ai_config_encryption_key in ["change-me-in-production-use-openssl-rand-32", ""]:
-                logger.warning("SECURITY WARNING: Using default encryption key in non-debug mode. Set AI_CONFIG_ENCRYPTION_KEY environment variable.")
+            # 检查加密密钥 - 生产环境必须设置
+            if not self.ai_config_encryption_key or self.ai_config_encryption_key in ["change-me-in-production-use-openssl-rand-32", ""]:
+                raise ValueError(
+                    "SECURITY ERROR: AI_CONFIG_ENCRYPTION_KEY must be set in production environment. "
+                    "Set a strong random string via AI_CONFIG_ENCRYPTION_KEY environment variable. "
+                    "Generate one with: openssl rand -hex 32"
+                )
 
-        # 开发环境也给出提示
+            # 检查密钥长度 - 至少32字符
+            if len(self.auth_secret) < 32:
+                raise ValueError(
+                    f"SECURITY ERROR: AUTH_SECRET too short ({len(self.auth_secret)} chars). "
+                    "Use at least 32 characters. Generate with: openssl rand -hex 32"
+                )
+
+            if len(self.ai_config_encryption_key) < 32:
+                raise ValueError(
+                    f"SECURITY ERROR: AI_CONFIG_ENCRYPTION_KEY too short ({len(self.ai_config_encryption_key)} chars). "
+                    "Use at least 32 characters. Generate with: openssl rand -hex 32"
+                )
+
+        # 开发环境给出提示但不阻止启动
         if self.debug:
-            if self.auth_secret == "change-me-in-production":
-                logger.info("Development mode: Using default auth_secret. For production, set AUTH_SECRET environment variable.")
-            if self.ai_config_encryption_key == "change-me-in-production-use-openssl-rand-32":
-                logger.info("Development mode: Using default encryption key. For production, set AI_CONFIG_ENCRYPTION_KEY environment variable.")
+            if not self.auth_secret or self.auth_secret == "change-me-in-production":
+                logger.warning(
+                    "Development mode: Using default auth_secret. "
+                    "For production, generate a secure key: openssl rand -hex 32"
+                )
+            if not self.ai_config_encryption_key or self.ai_config_encryption_key == "change-me-in-production-use-openssl-rand-32":
+                logger.warning(
+                    "Development mode: Using default encryption key. "
+                    "For production, generate a secure key: openssl rand -hex 32"
+                )
 
 
 # Create settings instance

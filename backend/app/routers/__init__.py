@@ -2,6 +2,7 @@
 from fastapi import APIRouter
 
 from .backups import router as backups_router
+from .cache import router as cache_router
 from .data_store import router as data_store_router
 from .devices import router as devices_router
 from .elements import router as elements_router
@@ -60,6 +61,7 @@ api_router.include_router(users_router)
 api_router.include_router(bulk_import_router)
 api_router.include_router(ai_router)
 api_router.include_router(permissions_router)
+api_router.include_router(cache_router)
 
 websocket_router = APIRouter()
 websocket_router.include_router(websocket_base_router)

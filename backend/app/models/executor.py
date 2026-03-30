@@ -3,7 +3,7 @@ Executor and Action Type models
 """
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey, Index
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.models.base import Base
 
@@ -17,10 +17,10 @@ class Executor(Base):
     executor_version = Column(String(20), nullable=False, comment='执行器版本')
     hostname = Column(String(100), comment='主机名')
     ip_address = Column(String(50), comment='IP地址')
-    last_seen = Column(DateTime, default=datetime.utcnow, comment='最后心跳时间')
+    last_seen = Column(DateTime, default=datetime.now(timezone.utc), comment='最后心跳时间')
     is_online = Column(Boolean, default=True, index=True, comment='是否在线')
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     # 关系
     capabilities = relationship("ExecutorActionCapability", back_populates="executor", cascade="all, delete-orphan")
@@ -43,10 +43,10 @@ class ActionType(Base):
     requires_value = Column(Boolean, default=False, comment='是否需要参数值')
     config_schema = Column(Text, comment='配置Schema(JSON)')
     first_seen_executor_id = Column(String(100), comment='首次注册的执行器ID')
-    first_seen_at = Column(DateTime, default=datetime.utcnow, comment='首次发现时间')
+    first_seen_at = Column(DateTime, default=datetime.now(timezone.utc), comment='首次发现时间')
     is_deprecated = Column(Boolean, default=False, index=True, comment='是否已废弃')
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     # 关系
     executor_capabilities = relationship("ExecutorActionCapability", back_populates="action_type", cascade="all, delete-orphan")
@@ -63,7 +63,7 @@ class ExecutorActionCapability(Base):
     executor_id = Column(String(100), ForeignKey('executors.executor_id', ondelete='CASCADE'), nullable=False, index=True)
     action_type_code = Column(String(50), ForeignKey('action_types.type_code', ondelete='CASCADE'), nullable=False, index=True)
     executor_version = Column(String(20), comment='注册时的执行器版本')
-    registered_at = Column(DateTime, default=datetime.utcnow, comment='注册时间')
+    registered_at = Column(DateTime, default=datetime.now(timezone.utc), comment='注册时间')
     implementation_version = Column(String(20), comment='实现版本')
 
     # 关系

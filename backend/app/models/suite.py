@@ -1,7 +1,7 @@
 """
 Suite model - test case collections
 """
-from sqlalchemy import Column, String, Text, Integer, ForeignKey, Enum, Boolean
+from sqlalchemy import Column, String, Text, Integer, ForeignKey, Enum, Boolean, Index
 from sqlalchemy.orm import relationship
 from .base import BaseModel, Base
 
@@ -25,6 +25,12 @@ class Suite(BaseModel):
     suite_testcases = relationship('SuiteTestcase', back_populates='suite', cascade='all, delete-orphan')
     test_plan_entries = relationship('TestPlanSuite', back_populates='suite')
 
+    # Indexes for query optimization
+    __table_args__ = (
+        Index('ix_suite_project_id', 'project_id'),
+        Index('ix_suite_enabled', 'enabled'),
+    )
+
     def __repr__(self):
         return f"<Suite(id={self.id}, name='{self.name}', priority='{self.priority}')>"
 
@@ -41,6 +47,14 @@ class SuiteTestcase(BaseModel):
     # Relationships
     suite = relationship('Suite', back_populates='suite_testcases')
     testcase = relationship('Testcase')
+
+    # Indexes for query optimization - composite indexes for common join patterns
+    __table_args__ = (
+        Index('ix_suite_testcase_suite_id', 'suite_id'),
+        Index('ix_suite_testcase_testcase_id', 'testcase_id'),
+        Index('ix_suite_testcase_suite_order', 'suite_id', 'order_index'),
+        Index('ix_suite_testcase_enabled', 'enabled'),
+    )
 
     def __repr__(self):
         return f"<SuiteTestcase(suite_id={self.suite_id}, testcase_id={self.testcase_id}, order={self.order_index})>"

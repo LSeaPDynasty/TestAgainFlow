@@ -6,6 +6,7 @@ from .exceptions import NotFoundError, ConflictError, DependencyError
 from .pagination import get_pagination_params
 from .dsl_parser import DslParser
 from .context_builder import build_execution_context
+from .cache import cache, cached, cache_result, MemoryCache
 from .adb import (
     run_adb_command,
     get_adb_devices,
@@ -29,6 +30,10 @@ __all__ = [
     'get_pagination_params',
     'DslParser',
     'build_execution_context',
+    'cache',
+    'cached',
+    'cache_result',
+    'MemoryCache',
     'run_adb_command',
     'get_adb_devices',
     'check_device_online',

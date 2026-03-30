@@ -32,11 +32,11 @@ try:
         connect_args={"check_same_thread": False} if validated_url.startswith("sqlite") else {},
         echo=settings.debug,
         poolclass=QueuePool,
-        pool_size=5,
-        max_overflow=10,
-        pool_timeout=30,
-        pool_recycle=1800,  # Recycle connections after 30 minutes
-        pool_pre_ping=True,  # Verify connections before using
+        pool_size=20,          # 基础连接池大小
+        max_overflow=30,       # 额外连接数，总共最多50个连接
+        pool_timeout=30,       # 获取连接的超时时间
+        pool_recycle=1800,     # 30分钟后回收连接
+        pool_pre_ping=True,    # 使用前验证连接有效性
     )
     logger.info("Database engine created successfully")
 except Exception as e:

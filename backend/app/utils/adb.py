@@ -3,8 +3,66 @@ ADB utility functions - Android Debug Bridge wrapper
 """
 import subprocess
 import json
+import re
+import os
 from typing import List, Dict, Optional, Any
 from app.config import settings
+
+# ADB设备序列号的安全验证（只允许字母数字和特定字符）
+DEVICE_SERIAL_PATTERN = re.compile(r'^[a-zA-Z0-9:_\.\-]+$')
+
+# 安全的ADB命令白名单
+SAFE_ADB_COMMANDS = {
+    'devices', 'shell', 'pull', 'push', 'install', 'uninstall',
+    'screencap', 'am', 'pm', 'dumpsys', 'getprop', 'input'
+}
+
+# 安全的shell命令白名单
+SAFE_SHELL_COMMANDS = {
+    'input', 'getprop', 'screencap', 'am', 'pm', 'dumpsys', 'rm', 'ls', 'cat'
+}
+
+
+def validate_device_serial(device_serial: str) -> bool:
+    """验证设备序列号是否安全"""
+    if not device_serial or len(device_serial) > 256:
+        return False
+    return bool(DEVICE_SERIAL_PATTERN.match(device_serial))
+
+
+def validate_adb_command_args(args: List[str]) -> bool:
+    """验证ADB命令参数是否安全"""
+    if not args or len(args) > 100:  # 防止过长的参数列表
+        return False
+
+    # 检查第一个参数是否在白名单中
+    if args[0] not in SAFE_ADB_COMMANDS:
+        return False
+
+    # 检查shell命令的第二个参数
+    if args[0] == 'shell' and len(args) > 1:
+        if args[1] not in SAFE_SHELL_COMMANDS:
+            return False
+
+    return True
+
+
+def validate_file_path(file_path: str) -> bool:
+    """验证文件路径是否安全（防止路径遍历攻击）"""
+    if not file_path or len(file_path) > 512:
+        return False
+
+    # 检查路径遍历
+    if '..' in file_path or file_path.startswith('/'):
+        return False
+
+    # 检查绝对路径
+    if os.path.isabs(file_path):
+        return False
+
+    # 只允许特定字符
+    allowed_pattern = re.compile(r'^[a-zA-Z0-9_\-./]+$')
+    return bool(allowed_pattern.match(file_path))
 
 
 def run_adb_command(args: List[str], device_serial: Optional[str] = None) -> str:
@@ -17,7 +75,19 @@ def run_adb_command(args: List[str], device_serial: Optional[str] = None) -> str
 
     Returns:
         Command output as string
+
+    Raises:
+        ValueError: 如果参数验证失败
+        Exception: 如果命令执行失败
     """
+    # 验证设备序列号
+    if device_serial and not validate_device_serial(device_serial):
+        raise ValueError(f"Invalid device serial: {device_serial}")
+
+    # 验证命令参数
+    if not validate_adb_command_args(args):
+        raise ValueError(f"Invalid ADB command arguments: {args}")
+
     cmd = [settings.adb_path]
 
     if device_serial:
@@ -30,7 +100,8 @@ def run_adb_command(args: List[str], device_serial: Optional[str] = None) -> str
             cmd,
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=30,
+            check=False  # 不自动检查返回码，由调用者处理
         )
         return result.stdout
     except subprocess.TimeoutExpired:
@@ -189,10 +260,19 @@ def input_text(device_serial: str, text: str) -> bool:
     Returns:
         True if successful
     """
+    # 验证文本参数（防止命令注入）
+    if not text or len(text) > 1000:  # 限制文本长度
+        return False
+
+    # 过滤危险字符
+    dangerous_chars = ['\n', '\r', '\x00']
+    if any(char in text for char in dangerous_chars):
+        return False
+
     try:
-        # Convert unicode to \u escape sequences
-        escaped_text = text.encode('unicode_escape').decode('ascii').replace('\\', '\\\\')
-        run_adb_command(["shell", "input", "text", text], device_serial=device_serial)
+        # 使用更安全的方式处理文本
+        safe_text = text.replace('%s', '%%s')  # 转义printf格式字符
+        run_adb_command(["shell", "input", "text", safe_text], device_serial=device_serial)
         return True
     except Exception:
         return False
@@ -226,7 +306,14 @@ def take_screenshot(device_serial: str, local_path: str) -> bool:
     Returns:
         True if successful
     """
+    # 验证文件路径安全
+    if not validate_file_path(local_path):
+        raise ValueError(f"Invalid file path: {local_path}")
+
     try:
+        # 确保目录存在
+        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+
         # Capture screenshot to device
         run_adb_command(["shell", "screencap", "-p", "/sdcard/screenshot.png"], device_serial=device_serial)
 
@@ -252,11 +339,20 @@ def start_activity(device_serial: str, activity: str) -> bool:
     Returns:
         True if successful
     """
+    # 验证activity格式（防止命令注入）
+    activity_pattern = re.compile(r'^[a-zA-Z0-9_\.]+/[a-zA-Z0-9_\.]+$')
+    if not activity or not activity_pattern.match(activity):
+        return False
+
     try:
         # Parse package and activity
         parts = activity.split('/')
         if len(parts) == 2:
             package, activity_name = parts
+            # 进一步验证包名和activity名
+            if not all(re.match(r'^[a-zA-Z0-9_\.]+$', p) for p in [package, activity_name]):
+                return False
+
             run_adb_command([
                 "shell", "am", "start",
                 "-n", f"{package}/{activity_name}"
