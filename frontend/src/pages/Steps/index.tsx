@@ -38,6 +38,7 @@ import { getFlows } from '../../services/flow';
 import { getActionTypes, actionTypesToCategories, actionTypesToColors, actionRequiresElement } from '../../services/actionTypes';
 import DrawerSelector from '../../components/DrawerSelector';
 import { VirtualTable } from '../../components/ui';
+import AIDescription from '../../components/AIDescription';
 
 const { Search } = Input;
 const { TextArea } = Input;
@@ -711,6 +712,35 @@ const Steps: React.FC = () => {
 
           <Form.Item label="描述" name="description">
             <TextArea rows={2} placeholder="步骤描述" />
+          </Form.Item>
+
+          <Form.Item label="AI辅助">
+            <Form.Item noStyle shouldUpdate={(prevValues, nextValues) => {
+              return prevValues.name !== nextValues.name ||
+                     prevValues.action_type !== nextValues.action_type ||
+                     prevValues.element_id !== nextValues.element_id;
+            }}>
+              {({ getFieldValue }) => {
+                const elementId = getFieldValue('element_id');
+                const element = elementsList.find((e: Element) => e.id === elementId);
+
+                return (
+                  <AIDescription
+                    type="step"
+                    data={{
+                      step_name: getFieldValue('name') || '',
+                      action_type: getFieldValue('action_type') || '',
+                      element_name: element?.name,
+                      element_description: element?.description,
+                    }}
+                    onDescriptionGenerated={(description) => {
+                      form.setFieldValue('description', description);
+                    }}
+                    disabled={!getFieldValue('name') || !getFieldValue('action_type')}
+                  />
+                );
+              }}
+            </Form.Item>
           </Form.Item>
 
           <Form.Item
