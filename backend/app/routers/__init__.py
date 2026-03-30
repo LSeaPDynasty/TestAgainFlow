@@ -31,6 +31,7 @@ from .testcases import router as testcases_router
 from .users import router as users_router
 from .websocket import router as websocket_base_router
 from .ai import router as ai_router
+from .ai_elements import router as ai_elements_router
 
 api_router = APIRouter()
 
@@ -60,6 +61,7 @@ api_router.include_router(scheduled_jobs_router)
 api_router.include_router(users_router)
 api_router.include_router(bulk_import_router)
 api_router.include_router(ai_router)
+api_router.include_router(ai_elements_router)
 api_router.include_router(permissions_router)
 api_router.include_router(cache_router)
 

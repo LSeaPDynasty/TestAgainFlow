@@ -40,6 +40,7 @@ import { getScreens } from '../../services/screen';
 import type { Locator } from '../../services/element';
 import DrawerSelector from '../../components/DrawerSelector';
 import { VirtualList } from '../../components/ui';
+import AIElementDescription from '../../components/AIElementDescription';
 
 // 类型定义
 type Element = {
@@ -618,6 +619,17 @@ const Elements: React.FC = () => {
             name="description"
           >
             <Input.TextArea rows={2} placeholder="元素描述" />
+          </Form.Item>
+
+          <Form.Item label="AI辅助">
+            <AIElementDescription
+              elementName={form.getFieldValue('name') || ''}
+              screenName={form.getFieldValue('screen_id') ? screensList.find((s: Screen) => s.id === form.getFieldValue('screen_id'))?.name || '' : ''}
+              locators={form.getFieldValue('locators') || []}
+              onDescriptionGenerated={(description) => {
+                form.setFieldValue('description', description);
+              }}
+            />
           </Form.Item>
 
           <Form.Item
