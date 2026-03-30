@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button, Space, Typography, Alert, Spin } from 'antd';
 import { ThunderboltOutlined, CheckOutlined } from '@ant-design/icons';
 import { message } from 'antd';
+import api from '../../services/api';
 
 const { Text } = Typography;
 
@@ -36,19 +37,13 @@ const AIElementDescription: React.FC<AIElementDescriptionProps> = ({
 
     setLoading(true);
     try {
-      const response = await fetch('/api/v1/ai/elements/generate-description', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          element_name: elementName,
-          screen_name: screenName,
-          locators: locators,
-        }),
+      const response = await api.post('/ai/elements/generate-description', {
+        element_name: elementName,
+        screen_name: screenName,
+        locators: locators,
       });
 
-      const data = await response.json();
+      const data = response.data;
 
       if (data.code === 0) {
         const description = data.data.description;
