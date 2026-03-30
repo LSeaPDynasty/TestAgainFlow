@@ -79,20 +79,74 @@ class ElementDescriptionService:
     
     def _generate_fallback_description(self, element_name: str, locators: list) -> str:
         """降级方案：基于规则生成描述"""
-        # 从定位符推断元素类型
+        import re
+
+        # 从元素名称推断功能
+        name_lower = element_name.lower()
+
+        # 推断元素类型
         element_type = "元素"
+        if any(kw in name_lower for kw in ['btn', 'button', 'click', 'submit']):
+            element_type = "按钮"
+        elif any(kw in name_lower for kw in ['input', 'edit', 'field', 'text']):
+            element_type = "输入框"
+        elif any(kw in name_lower for kw in ['text', 'label', 'title', 'msg']):
+            element_type = "文本"
+        elif any(kw in name_lower for kw in ['image', 'img', 'icon', 'avatar']):
+            element_type = "图片"
+        elif any(kw in name_lower for kw in ['switch', 'toggle', 'check']):
+            element_type = "开关"
+        elif any(kw in name_lower for kw in ['list', 'recycler', 'grid']):
+            element_type = "列表"
+
+        # 从定位符推断
+        locator_type = ""
         for loc in locators:
-            if 'btn' in loc['value'].lower() or 'button' in loc['value'].lower():
-                element_type = "按钮"
-                break
-            elif 'edit' in loc['value'].lower() or 'input' in loc['value'].lower():
-                element_type = "输入框"
-                break
-            elif 'text' in loc['type'].lower():
-                element_type = "文本"
-                break
-        
-        return f"{element_name}（{element_type}）"
+            val = loc['value'].lower()
+            if 'id' in loc['type'].lower():
+                if 'btn' in val or 'button' in val:
+                    locator_type = "按钮"
+                elif 'input' in val or 'edit' in val or 'text' in val:
+                    locator_type = "输入框"
+                elif 'config' in val or 'setting' in val:
+                    locator_type = "配置"
+
+        # 从元素名称推断功能
+        function_desc = ""
+        if 'config' in name_lower or 'setting' in name_lower:
+            function_desc = "配置"
+        elif 'login' in name_lower:
+            function_desc = "登录"
+        elif 'submit' in name_lower or 'confirm' in name_lower:
+            function_desc = "提交确认"
+        elif 'cancel' in name_lower or 'close' in name_lower:
+            function_desc = "取消"
+        elif 'delete' in name_lower or 'remove' in name_lower:
+            function_desc = "删除"
+        elif 'save' in name_lower:
+            function_desc = "保存"
+        elif 'rtk' in name_lower:
+            function_desc = "RTK"
+        else:
+            # 驼峰命名转可读格式
+            parts = re.findall('[A-Z][a-z]*|[a-z]+', element_name)
+            if parts:
+                function_desc = parts[0]
+
+        # 组合描述
+        if function_desc and locator_type:
+            return f"{function_desc}{locator_type}"
+        elif function_desc:
+            return f"{function_desc}{element_type}"
+        elif locator_type:
+            return f"{locator_type}"
+        else:
+            # 尝试美化元素名称
+            if element_name == element_name.lower():
+                return f"{element_name}（{element_type}）"
+            # 驼峰转可读格式
+            readable = ' '.join(re.findall('[A-Z][a-z]*|[a-z]+', element_name))
+            return f"{readable}（{element_type}）"
     
     async def batch_generate(
         self,

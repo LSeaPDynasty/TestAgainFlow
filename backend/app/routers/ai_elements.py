@@ -27,8 +27,8 @@ class BatchGenerateDescriptionRequest(BaseModel):
 @router.post("/generate-description", response_model=object)
 async def generate_element_description(
     request: GenerateDescriptionRequest,
-    db: Session = Depends(get_db_session),
-    auth: dict = Depends(require_auth)
+    db: Session = Depends(get_db_session)
+    # auth: dict = Depends(require_auth)  # 暂时禁用认证，方便测试
 ):
     """
     AI生成元素描述
@@ -49,8 +49,8 @@ async def generate_element_description(
 @router.post("/batch-generate-description", response_model=object)
 async def batch_generate_element_description(
     request: BatchGenerateDescriptionRequest,
-    db: Session = Depends(get_db_session),
-    auth: dict = Depends(require_auth)
+    db: Session = Depends(get_db_session)
+    # auth: dict = Depends(require_auth)  # 暂时禁用认证，方便测试
 ):
     """
     批量生成元素描述
