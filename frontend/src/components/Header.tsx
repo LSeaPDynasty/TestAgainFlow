@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Badge, Button, Dropdown, Space, Typography, Input, Tag } from 'antd';
 import {
   LogoutOutlined,
@@ -30,20 +30,14 @@ const Header: React.FC = () => {
   const { sidebarCollapsed, toggleSidebar, selectedDevice } = useAppStore();
   const { selectedProjectId, setSelectedProjectId } = useProject();
 
-  const { data: me, isLoading: meLoading, error: meError } = useQuery({
+  const { data: me } = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: getMe,
     retry: 1, // 允许重试一次
   });
 
-  // 优先使用API返回的用户，如果失败且5秒后仍无响应，使用缓存
+  // 优先使用API返回的用户，如果失败使用缓存
   const displayUser = me || getStoredUser();
-
-  // 添加调试日志
-  React.useEffect(() => {
-    console.log('Header - 当前用户:', displayUser?.username, '角色:', displayUser?.role);
-    console.log('Header - API用户:', me?.username, '角色:', me?.role);
-  }, [displayUser, me]);
 
   const { data: projectsResponse } = useQuery({
     queryKey: ['projects'],
@@ -52,12 +46,6 @@ const Header: React.FC = () => {
   });
 
   const projects = projectsResponse?.data?.data?.items || [];
-
-  // 添加项目调试日志
-  React.useEffect(() => {
-    console.log('Header - 项目数量:', projects.length);
-    console.log('Header - 项目列表:', projects);
-  }, [projects]);
 
   const handleLogout = () => {
     clearAuthSession();
