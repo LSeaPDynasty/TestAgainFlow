@@ -1,12 +1,7 @@
 /**
  * Project service - 项目管理服务
  */
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: '/api/v1',
-  timeout: 30000,
-});
+import api from './api';
 
 export interface ProjectStatistics {
   testcase_count: number;

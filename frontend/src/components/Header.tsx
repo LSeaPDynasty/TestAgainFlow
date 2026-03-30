@@ -47,10 +47,7 @@ const Header: React.FC = () => {
 
   const { data: projectsResponse } = useQuery({
     queryKey: ['projects'],
-    queryFn: async () => {
-      const res = await getProjects();
-      return res;
-    },
+    queryFn: getProjects,
     enabled: !!displayUser, // 只有在用户登录后才加载项目
   });
 
