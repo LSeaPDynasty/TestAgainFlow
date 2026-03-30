@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+executor.log
+backend.log
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Test Coverage
+htmlcov/
+.coverage
+.pytest_cache/
+.tox/
+
+# Temporary files
+*.tmp
+*.temp
+nul
+.DS_Store
+
+# Claude Code
+.claude/
+
+# Node modules (for frontend)
+node_modules/
+
+# Build outputs
+frontend/build/
+frontend/dist/
+
+# Environment variables
+.env
+.env.local
