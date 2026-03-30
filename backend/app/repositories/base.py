@@ -96,12 +96,24 @@ class BaseRepository(Generic[ModelType]):
 
         return self.db.execute(stmt).scalar() or 0
 
-    def create(self, obj_in: Dict[str, Any]) -> ModelType:
-        """Create new record"""
-        db_obj = self.model(**obj_in)
+    def create(self, obj_in: Union[Dict[str, Any], 'PydanticBaseModel']) -> ModelType:
+        """Create new record with Pydantic model support and error handling"""
+        # Handle both dict and Pydantic models
+        if hasattr(obj_in, 'model_dump'):
+            obj_data = obj_in.model_dump()
+        elif hasattr(obj_in, 'dict'):
+            obj_data = obj_in.dict()
+        else:
+            obj_data = obj_in
+
+        db_obj = self.model(**obj_data)
         self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        try:
+            self.db.commit()
+            self.db.refresh(db_obj)
+        except Exception as e:
+            self.db.rollback()
+            raise RepositoryError(f"Failed to create {self.model.__name__}: {str(e)}")
         return db_obj
 
     def update(self, id: int, obj_in: Dict[str, Any]) -> Optional[ModelType]:
