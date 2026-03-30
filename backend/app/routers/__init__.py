@@ -32,6 +32,9 @@ from .users import router as users_router
 from .websocket import router as websocket_base_router
 from .ai import router as ai_router
 from .ai_elements import router as ai_elements_router
+from .ai_steps import router as ai_steps_router
+from .ai_flows import router as ai_flows_router
+from .ai_testcases import router as ai_testcases_router
 
 api_router = APIRouter()
 
@@ -62,6 +65,9 @@ api_router.include_router(users_router)
 api_router.include_router(bulk_import_router)
 api_router.include_router(ai_router)
 api_router.include_router(ai_elements_router)
+api_router.include_router(ai_steps_router)
+api_router.include_router(ai_flows_router)
+api_router.include_router(ai_testcases_router)
 api_router.include_router(permissions_router)
 api_router.include_router(cache_router)
 

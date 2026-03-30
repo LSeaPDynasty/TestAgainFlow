@@ -20,13 +20,25 @@ class AIService:
     def _init_provider(self):
         """初始化AI Provider"""
         provider_type = settings.ai_default_provider
-        
-        if provider_type == "zhipu":
+
+        if provider_type == "openai":
+            # OpenAI / LiteLLM
+            if not settings.openai_api_key or settings.openai_api_key == "your-api-key-here":
+                logger.warning("OpenAI API key not configured, using fallback only")
+                return
+
+            self._provider = OpenAIProvider(AIProviderConfig(
+                provider_type="openai",
+                api_key=settings.openai_api_key,
+                base_url=settings.openai_base_url,
+                model=settings.openai_model
+            ))
+        elif provider_type == "zhipu":
             # 智谱AI
             if not settings.zhipu_api_key:
                 logger.warning("Zhipu API key not configured")
                 return
-            
+
             self._provider = OpenAIProvider(AIProviderConfig(
                 provider_type="openai",
                 api_key=settings.zhipu_api_key,
@@ -34,17 +46,7 @@ class AIService:
                 model=settings.zhipu_model
             ))
         else:
-            # OpenAI
-            if not settings.openai_api_key:
-                logger.warning("OpenAI API key not configured")
-                return
-            
-            self._provider = OpenAIProvider(AIProviderConfig(
-                provider_type="openai",
-                api_key=settings.openai_api_key,
-                base_url=settings.openai_base_url,
-                model=settings.openai_model
-            ))
+            logger.warning(f"Unknown provider type: {provider_type}")
     
     async def call(
         self,
@@ -55,36 +57,31 @@ class AIService:
     ) -> str:
         """
         调用AI服务
-        
+
         Args:
             prompt: 提示词
             max_tokens: 最大token数
             temperature: 温度参数
             **kwargs: 其他参数
-        
+
         Returns:
             AI响应文本
         """
         if not self._provider:
             raise Exception("AI provider not configured. Please set API key in .env file.")
-        
+
         try:
-            response = await self._provider.call(
-                messages=[{"role": "user", "content": prompt}],
+            from app.services.ai.base import AIMessage
+
+            response, stats = await self._provider.chat_completion(
+                messages=[AIMessage(role="user", content=prompt)],
                 max_tokens=max_tokens,
                 temperature=temperature,
                 **kwargs
             )
-            
-            # 提取响应文本
-            if isinstance(response, dict):
-                if "choices" in response:
-                    return response["choices"][0]["message"]["content"]
-                else:
-                    return str(response)
-            else:
-                return response
-                
+
+            return response.content
+
         except Exception as e:
             logger.error(f"AI service call failed: {e}")
             raise
