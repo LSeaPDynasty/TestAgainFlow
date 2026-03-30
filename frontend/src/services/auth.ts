@@ -47,6 +47,8 @@ export const getStoredUser = (): UserInfo | null => {
   try {
     return JSON.parse(raw) as UserInfo;
   } catch {
+    // 数据损坏，清除缓存
+    clearAuthSession();
     return null;
   }
 };
@@ -91,4 +93,33 @@ export const isAdmin = (user: UserInfo | null): boolean => {
 export const isSuperAdmin = (user: UserInfo | null): boolean => {
   if (!user) return false;
   return user.role === 'super_admin';
+};
+
+/**
+ * 清除所有认证缓存
+ */
+export const clearAllAuthCache = () => {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(AUTH_USER_KEY);
+  // 清除所有相关缓存
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && (key.includes('auth') || key.includes('user') || key.includes('token'))) {
+      localStorage.removeItem(key);
+    }
+  }
+};
+
+/**
+ * 强制刷新用户信息
+ */
+export const forceRefreshUser = async (): Promise<UserInfo | null> => {
+  try {
+    clearAuthSession();
+    const user = await getMe();
+    return user;
+  } catch (error) {
+    console.error('刷新用户信息失败:', error);
+    return null;
+  }
 };

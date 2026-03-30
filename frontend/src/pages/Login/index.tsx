@@ -2,7 +2,7 @@
 import { Alert, Button, Card, Form, Input, Segmented, Space, Typography, message } from 'antd';
 import { useMutation } from '@tanstack/react-query';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { isAuthenticated, login, register } from '../../services/auth';
+import { isAuthenticated, login, register, clearAllAuthCache } from '../../services/auth';
 
 const { Title, Text } = Typography;
 
@@ -13,6 +13,11 @@ const LoginPage: React.FC = () => {
   const location = useLocation();
   const [mode, setMode] = useState<Mode>('login');
   const [form] = Form.useForm();
+
+  // 清除旧的缓存，确保干净的登录状态
+  useMemo(() => {
+    clearAllAuthCache();
+  }, []);
 
   const redirectTo = useMemo(() => {
     const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;

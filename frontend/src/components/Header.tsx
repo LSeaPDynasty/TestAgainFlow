@@ -30,12 +30,14 @@ const Header: React.FC = () => {
   const { sidebarCollapsed, toggleSidebar, selectedDevice } = useAppStore();
   const { selectedProjectId, setSelectedProjectId } = useProject();
 
-  const { data: me } = useQuery({
+  const { data: me, isLoading: meLoading, error: meError } = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: getMe,
-    initialData: getStoredUser() ?? undefined,
-    staleTime: 60000,
+    retry: false,
   });
+
+  // 如果获取用户信息失败，使用缓存的用户
+  const displayUser = me || getStoredUser();
 
   const { data: projectsResponse } = useQuery({
     queryKey: ['projects'],
@@ -43,6 +45,7 @@ const Header: React.FC = () => {
       const res = await getProjects();
       return res;
     },
+    enabled: !!displayUser, // 只有在用户登录后才加载项目
   });
 
   const projects = projectsResponse?.data?.data?.items || [];
@@ -75,7 +78,7 @@ const Header: React.FC = () => {
       icon: <UserOutlined />,
       label: '用户管理',
       onClick: () => navigate('/users'),
-      visible: isAdmin(me as UserInfo | null),
+      visible: isAdmin(displayUser as UserInfo | null),
     },
     {
       key: 'scheduler',
@@ -162,13 +165,13 @@ const Header: React.FC = () => {
         {/* 用户菜单 */}
         <Space size={8}>
           <Text style={{ color: '#fff' }}>
-            {me?.username || 'Guest'}
-            {me?.role === 'super_admin' && (
+            {displayUser?.username || 'Guest'}
+            {displayUser?.role === 'super_admin' && (
               <Tag color="red" style={{ marginLeft: 8 }}>
                 超级管理员
               </Tag>
             )}
-            {me?.role === 'admin' && (
+            {displayUser?.role === 'admin' && (
               <Tag color="orange" style={{ marginLeft: 8 }}>
                 管理员
               </Tag>
