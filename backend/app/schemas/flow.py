@@ -48,14 +48,14 @@ class FlowStepDetailSchema(BaseModel):
     """Flow step detail in response"""
     order: int
     step_id: Optional[int]
-    sub_flow_id: Optional[int]
+    sub_flow_id: Optional[int] = None
     step_name: Optional[str]
-    sub_flow_name: Optional[str]
+    sub_flow_name: Optional[str] = None
     action_type: Optional[str]
     screen_name: Optional[str]
     element_name: Optional[str]
     element_description: Optional[str] = None  # 新增：元素描述
-    override_value: Optional[str]
+    override_value: Optional[str] = None
     is_sub_flow: bool = False
 
     class Config:
